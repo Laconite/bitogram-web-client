@@ -1,0 +1,19 @@
+:root {
+    --background-color: #101417;
+    --background-button-color: #00000000;
+    --background-button-color-hover: #333333;
+    --background-button-color-active: #666666;
+    --background-input-color: #00000000;
+    --background-border-color: #FFFFFF;
+    --background-border-color-error: #ff0000;
+    
+    --surface-color: #1A1E22;
+    --surface-secondary-color: #22262a;
+    --surface-input-color: #252a2e;
+
+    --text-color: #FFFFFF;
+    --text-color-placeholder: #FFFFFF88;
+
+    --message-color-my: #184074;
+    --message-color-other: #1D2128;
+}

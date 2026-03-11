@@ -1,0 +1,12 @@
+.input {
+    padding: 16px 20px;
+    background-color: var(--background-input-color);
+    border-radius: var(--border-radius);
+    border: var(--border-width) solid var(--background-border-color);
+    color: var(--text-color);
+    font-size: var(--font-size);
+    line-height: 1;
+}
+.inputError {
+    border-color: var(--background-border-color-error);
+}

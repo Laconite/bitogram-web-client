@@ -1,0 +1,8 @@
+.container{
+    height: var(--top-panel-height);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0px 16px;
+    background-color: var(--surface-color);
+}

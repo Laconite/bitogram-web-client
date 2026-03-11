@@ -1,0 +1,7 @@
+.input {
+    padding: 12px 20px;
+    background-color: var(--surface-input-color);
+    border-radius: var(--border-radius);
+    color: var(--text-color);
+    font-size: var(--font-size);
+}

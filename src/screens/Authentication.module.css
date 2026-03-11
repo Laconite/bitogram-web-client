@@ -1,0 +1,31 @@
+.screen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.form {
+    width: 80%;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+}
+
+.button {
+    padding: 16px 20px;
+    background-color: var(--background-button-color);
+    border-radius: var(--border-radius);
+    border: var(--border-width) solid var(--background-border-color);
+    color: var(--text-color);
+    font-size: var(--font-size);
+}
+.button:hover {
+    background-color: var(--background-button-color-hover);
+}
+.button:active {
+    background-color: var(--background-button-color-active);
+}
