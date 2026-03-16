@@ -99,17 +99,17 @@ const Main = ({
                 const channel = packet.values.channels[channelIndex];
                 const lastMessage = channel.lastMessage;
 
+                channelsRef.current.push({
+                    id: channel.id,
+                    type: channel.type,
+                    interlocutorId: channel.interlocutorId,
+                });
+
                 addMessage({
                     id: lastMessage.id,
                     senderId: lastMessage.senderId,
                     channelId: channel.id,
                     text: lastMessage.text,
-                });
-
-                channelsRef.current.push({
-                    id: channel.id,
-                    type: channel.type,
-                    interlocutorId: channel.interlocutorId,
                 });
             }
 
@@ -123,18 +123,24 @@ const Main = ({
             const channel = packet.values;
             const lastMessage = channel.lastMessage;
 
+            const newChannel: ChannelModel = {
+                id: channel.id,
+                type: channel.type,
+                interlocutorId: channel.interlocutorId,
+            }
+
+            setChannels(prev => [...prev, newChannel]);
+
+            if (selectedChannelRef.current && !selectedChannelRef.current.id) {
+                setSelectedChannel(newChannel);
+            }
+
             addMessage({
                 id: lastMessage.id,
                 senderId: lastMessage.senderId,
                 channelId: channel.id,
                 text: lastMessage.text,
             });
-
-            setChannels(prev => [...prev, {
-                id: packet.values.id,
-                type: packet.values.type,
-                interlocutorId: packet.values.interlocutorId,
-            }]);
 
             updateMessages();
         }
@@ -174,7 +180,6 @@ const Main = ({
             unsubscribePacket(FROM_ID_BY_NAME.CREATE_CHANNEL, handleCreateChannelPacket);
             unsubscribePacket(FROM_ID_BY_NAME.MESSAGE, handleMessagePacket);
             unsubscribePacket(FROM_ID_BY_NAME.GET_MESSAGES, handleGetMessagesPacket);
-
         };
     }, [subscribePacket, unsubscribePacket]);
 
@@ -213,6 +218,21 @@ const Main = ({
     const width = useWindowWidth();
     const isMobile = width < 768;
 
+    const lastIds = new Map<number, number>();
+    const previewChannels: ChannelModel[] = [...channels].sort((a, b) => {
+        if (!a.id || !b.id) return 0;
+
+        if (!lastIds.has(a.id)) {
+            lastIds.set(a.id, getMessages(a.id).at(-1)?.id ?? 0);
+        }
+
+        if (!lastIds.has(b.id)) {
+            lastIds.set(b.id, getMessages(b.id).at(-1)?.id ?? 0);
+        }
+
+        return (lastIds.get(b.id)! - lastIds.get(a.id)!);
+    });
+
     return (
         <div className={classes.screen}>
             {(!isMobile || !selectedChannel) &&
@@ -233,9 +253,16 @@ const Main = ({
                         selectedChannel={selectedChannel}
                         selectChannel={selectChannel} />
 
-                    {searchText.length === 0 && channels.map(channel => (
-                        <ChannelPreview key={channel.id} channel={channel} onClick={() => selectChannel(channel)} users={users} getMessages={getMessages} />
-                    ))}
+                    <div className={classes.channelPreviews}>
+                        {searchText.length === 0 && previewChannels.map(channel => (
+                            <ChannelPreview
+                                key={channel.id}
+                                channel={channel}
+                                onClick={() => selectChannel(channel)}
+                                users={users}
+                                getMessages={getMessages} />
+                        ))}
+                    </div>
 
                     <div className={classes.surfaceFiller} />
                 </div>

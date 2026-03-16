@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, type RefObject } from 'react';
+import useRefState from '@hooks/useRefState';
 
 type WSContextType = {
   socket: WebSocket | null;
+  socketRef: RefObject<WebSocket | null>;
   subscribe: {
     (event: 'open', callback: () => void): void;
     (event: 'close', callback: () => void): void;
@@ -23,9 +25,8 @@ export const useSocket = () => {
 };
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const socketRef = useRef<WebSocket | null>(null);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-
+  const [socket, setSocket, socketRef] = useRefState<WebSocket | null>(null);
+  
   const listenersRef = useRef({
     open: new Set<() => void>(),
     close: new Set<() => void>(),
@@ -83,7 +84,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        connect()
+        connect();
       }
     };
 
@@ -96,7 +97,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket, subscribe, unsubscribe }}>
+    <SocketContext.Provider value={{ socket, socketRef, subscribe, unsubscribe }}>
       {children}
     </SocketContext.Provider>
   );

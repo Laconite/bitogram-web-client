@@ -20,23 +20,23 @@ const Channel = ({
     getMessages,
     id,
 }: ChannelProps) => {
+    useEffect(() => {
+        if (!channel) return;
+
+        window.history.pushState({ channelOpen: channel.id }, "");
+
+        const handleBack = () => {
+            setSelectedChannel(null);
+        };
+
+        window.addEventListener("popstate", handleBack);
+
+        return () => {
+            window.removeEventListener("popstate", handleBack);
+        };
+    }, [channel, setSelectedChannel]);
+
     if (channel) {
-        useEffect(() => {
-            if (!channel) return;
-
-            window.history.pushState({ channelOpen: channel.id }, "");
-
-            const handleBack = () => {
-                setSelectedChannel(null);
-            };
-
-            window.addEventListener("popstate", handleBack);
-
-            return () => {
-                window.removeEventListener("popstate", handleBack);
-            };
-        }, [channel, setSelectedChannel]);
-
         return (
             <div className={classes.container}>
                 <InfoPanel channel={channel} setSelectedChannel={setSelectedChannel} users={users} />

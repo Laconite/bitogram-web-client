@@ -5,6 +5,7 @@ import Input from "@components/background/Input"
 import classes from "./Authentication.module.css";
 
 interface AuthenticationProps {
+    sessionKeyRef: RefObject<Uint8Array | null>;
     username: string;
     setUsername: (username: string) => void;
     usernameRef: RefObject<string>;
@@ -14,7 +15,16 @@ interface AuthenticationProps {
     setId: (id: number | null) => void;
 }
 
-const Authentication = ({ username, setUsername, usernameRef, fullName, setFullName, passwordSaltRef, setId }: AuthenticationProps) => {
+const Authentication = ({ 
+    sessionKeyRef,
+    username, 
+    setUsername, 
+    usernameRef, 
+    fullName, 
+    setFullName, 
+    passwordSaltRef, 
+    setId,
+}: AuthenticationProps) => {
     const PageId = {
         ENTERING_USERNAME: 0,
         ENTERING_PASSWORD: 1,
@@ -43,19 +53,19 @@ const Authentication = ({ username, setUsername, usernameRef, fullName, setFullN
         let netStream = new NetStream();
         netStream.writeStructure({
             id: "int",
-            username: "string"
+            username: "string",
         }, [
             TO_ID_BY_NAME.CHECK_USERNAME,
-            username
+            username,
         ]);
         sendPacket(netStream.buffer);
     }
     const sendGetPasswordSaltPacket = async () => {
         let netStream = new NetStream();
         netStream.writeStructure({
-            id: "int"
+            id: "int",
         }, [
-            TO_ID_BY_NAME.GET_PASSWORD_SALT
+            TO_ID_BY_NAME.GET_PASSWORD_SALT,
         ]);
         sendPacket(netStream.buffer);
     }
@@ -65,9 +75,10 @@ const Authentication = ({ username, setUsername, usernameRef, fullName, setFullN
         let netStream = new NetStream();
         netStream.writeStructure({
             id: "int",
-            passwordHash: "bytes"
+            passwordHash: "bytes",
         }, [
-            TO_ID_BY_NAME.AUTHORIZATION, passwordHash
+            TO_ID_BY_NAME.AUTHORIZATION, 
+            passwordHash,
         ]);
         sendPacket(netStream.buffer);
     }
@@ -85,28 +96,33 @@ const Authentication = ({ username, setUsername, usernameRef, fullName, setFullN
             passwordSalt: "bytes",
             passwordHash: "bytes",
             fullName: "string",
-            confirmationCode: "string"
+            confirmationCode: "string",
         }, [
             TO_ID_BY_NAME.REGISTRATION,
             passwordSalt,
             passwordHash,
             fullName,
-            confirmationCode
+            confirmationCode,
         ]);
         sendPacket(netStream.buffer);
     }
     const sendGetInitDataPacket = async () => {
         let netStream = new NetStream();
         netStream.writeStructure({
-            id: "int"
+            id: "int",
         }, [
-            TO_ID_BY_NAME.GET_INIT_DATA
+            TO_ID_BY_NAME.GET_INIT_DATA,
         ]);
         sendPacket(netStream.buffer);
     }
 
     useEffect(() => {
-        const handlePacketCheckUsername = (packet: NetPacket) => {
+        const handleSessionPacket = (packet: NetPacket) => {
+            console.log("Packet: Session");
+            console.log("\t", packet.values.key);
+            sessionKeyRef.current = packet.values.key;
+        }
+        const handleCheckUsernamePacket = (packet: NetPacket) => {
             console.log("Packet: Check username");
 
             const UsernameStatus = {
@@ -123,13 +139,13 @@ const Authentication = ({ username, setUsername, usernameRef, fullName, setFullN
                 sendGetPasswordSaltPacket();
             }
         }
-        const handlePacketGetPasswordSalt = (packet: NetPacket) => {
+        const handleGetPasswordSaltPacket = (packet: NetPacket) => {
             console.log("Packet: Get password salt");
 
             passwordSaltRef.current = packet.values.passwordSalt;
             setPageId(PageId.ENTERING_PASSWORD);
         }
-        const handlePacketAuthorization = (packet: NetPacket) => {
+        const handleAuthorizationPacket = (packet: NetPacket) => {
             console.log("Packet: Authorization");
 
             setId(packet.values.userId);
@@ -137,12 +153,12 @@ const Authentication = ({ username, setUsername, usernameRef, fullName, setFullN
 
             sendGetInitDataPacket();
         }
-        const handlePacketRequestConfirmationCode = (packet: NetPacket) => {
+        const handleRequestConfirmationCodePacket = (packet: NetPacket) => {
             console.log("Packet: Request confirmation code");
 
             setPageId(PageId.ENTERING_CONFIRMATION_CODE);
         }
-        const handlePacketRegistration = (packet: NetPacket) => {
+        const handleRegistrationPacket = (packet: NetPacket) => {
             console.log("Packet: Registration");
 
             setId(packet.values.userId);
@@ -151,18 +167,20 @@ const Authentication = ({ username, setUsername, usernameRef, fullName, setFullN
             sendGetInitDataPacket();
         }
 
-        subscribePacket(FROM_ID_BY_NAME.CHECK_USERNAME, handlePacketCheckUsername);
-        subscribePacket(FROM_ID_BY_NAME.GET_PASSWORD_SALT, handlePacketGetPasswordSalt);
-        subscribePacket(FROM_ID_BY_NAME.AUTHORIZATION, handlePacketAuthorization);
-        subscribePacket(FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE, handlePacketRequestConfirmationCode);
-        subscribePacket(FROM_ID_BY_NAME.REGISTRATION, handlePacketRegistration);
+        subscribePacket(FROM_ID_BY_NAME.SESSION, handleSessionPacket);
+        subscribePacket(FROM_ID_BY_NAME.CHECK_USERNAME, handleCheckUsernamePacket);
+        subscribePacket(FROM_ID_BY_NAME.GET_PASSWORD_SALT, handleGetPasswordSaltPacket);
+        subscribePacket(FROM_ID_BY_NAME.AUTHORIZATION, handleAuthorizationPacket);
+        subscribePacket(FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE, handleRequestConfirmationCodePacket);
+        subscribePacket(FROM_ID_BY_NAME.REGISTRATION, handleRegistrationPacket);
 
         return () => {
-            unsubscribePacket(FROM_ID_BY_NAME.CHECK_USERNAME, handlePacketCheckUsername);
-            unsubscribePacket(FROM_ID_BY_NAME.GET_PASSWORD_SALT, handlePacketGetPasswordSalt);
-            unsubscribePacket(FROM_ID_BY_NAME.AUTHORIZATION, handlePacketAuthorization);
-            unsubscribePacket(FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE, handlePacketRequestConfirmationCode);
-            unsubscribePacket(FROM_ID_BY_NAME.REGISTRATION, handlePacketRegistration);
+            unsubscribePacket(FROM_ID_BY_NAME.SESSION, handleSessionPacket);
+            unsubscribePacket(FROM_ID_BY_NAME.CHECK_USERNAME, handleCheckUsernamePacket);
+            unsubscribePacket(FROM_ID_BY_NAME.GET_PASSWORD_SALT, handleGetPasswordSaltPacket);
+            unsubscribePacket(FROM_ID_BY_NAME.AUTHORIZATION, handleAuthorizationPacket);
+            unsubscribePacket(FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE, handleRequestConfirmationCodePacket);
+            unsubscribePacket(FROM_ID_BY_NAME.REGISTRATION, handleRegistrationPacket);
         };
     }, [subscribePacket, unsubscribePacket]);
 

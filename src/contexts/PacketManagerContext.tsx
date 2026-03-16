@@ -3,29 +3,34 @@ import { useSocket } from "@contexts/SocketContext";
 import { NetStream, NetPacket } from "@utils/Net";
 
 export const TO_ID_BY_NAME = {
-    CHECK_USERNAME: 0x00,
-    GET_PASSWORD_SALT: 0x01,
-    AUTHORIZATION: 0x02,
-    REQUEST_CONFIRMATION_CODE: 0x03,
-    REGISTRATION: 0x04,
-    GET_INIT_DATA: 0x05,
-    SEARCH: 0x06,
-    CREATE_CHANNEL: 0x07,
-    MESSAGE: 0x08,
-    GET_MESSAGES: 0x09
+    RESTORE_SESSION: 0x00,
+    CHECK_USERNAME: 0x01,
+    GET_PASSWORD_SALT: 0x02,
+    AUTHORIZATION: 0x03,
+    REQUEST_CONFIRMATION_CODE: 0x04,
+    REGISTRATION: 0x05,
+    GET_INIT_DATA: 0x06,
+    SEARCH: 0x07,
+    CREATE_CHANNEL: 0x08,
+    MESSAGE: 0x09,
+    GET_MESSAGES: 0x0a,
+    USERS_COUNT: 0x0b,
+    SESSIONS_COUNT: 0x0c,
 };
-
 export const FROM_ID_BY_NAME = {
-    CHECK_USERNAME: 0x00,
-    GET_PASSWORD_SALT: 0x01,
-    AUTHORIZATION: 0x02,
-    REQUEST_CONFIRMATION_CODE: 0x03,
-    REGISTRATION: 0x04,
-    GET_INIT_DATA: 0x05,
-    SEARCH: 0x06,
-    CREATE_CHANNEL: 0x07,
-    MESSAGE: 0x08,
-    GET_MESSAGES: 0x09
+    SESSION: 0x00,
+    CHECK_USERNAME: 0x01,
+    GET_PASSWORD_SALT: 0x02,
+    AUTHORIZATION: 0x03,
+    REQUEST_CONFIRMATION_CODE: 0x04,
+    REGISTRATION: 0x05,
+    GET_INIT_DATA: 0x06,
+    SEARCH: 0x07,
+    CREATE_CHANNEL: 0x08,
+    MESSAGE: 0x09,
+    GET_MESSAGES: 0x0a,
+    USERS_COUNT: 0x0b,
+    SESSIONS_COUNT: 0x0c,
 };
 
 type PacketManagerContextType = {
@@ -43,7 +48,7 @@ export const usePacketManager = () => {
 };
 
 export const PacketManagerProvider = ({ children }: { children: React.ReactNode }) => {
-    const { socket, subscribe, unsubscribe } = useSocket();
+    const { socketRef, subscribe, unsubscribe } = useSocket();
     const netStream = useRef(new NetStream());
     const netPacket = useRef<NetPacket>(null);
 
@@ -67,6 +72,11 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
             let values: Record<string, any> | null = null;
 
             switch (netPacket.current.id) {
+                case FROM_ID_BY_NAME.SESSION:
+                    [values, offset] = netStream.current.readStructureWithNames(`
+                        key: bytes
+                    `);
+                    break;
                 case FROM_ID_BY_NAME.CHECK_USERNAME:
                     [values, offset] = netStream.current.readStructureWithNames(`
                         usernameStatus: int
@@ -147,6 +157,10 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                         }
                     `);
                     break;
+                case FROM_ID_BY_NAME.USERS_COUNT:
+                    break;
+                case FROM_ID_BY_NAME.SESSIONS_COUNT:
+                    break;
                 default:
                     break;
             }
@@ -175,12 +189,12 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     }, [subscribe, unsubscribe]);
 
     const sendPacket = async (payload: Uint8Array) => {
-        if (socket?.readyState != WebSocket.OPEN)
+        if (socketRef.current?.readyState != WebSocket.OPEN)
             return;
 
-        let netStream = new NetStream();
+        const netStream = new NetStream();
         netStream.writeStructure({ payload: "bytes" }, [payload]);
-        socket.send(netStream.buffer);
+        socketRef.current.send(netStream.buffer);
     }
 
     const subscribePacket = (packetId: number, callback: (packet: NetPacket) => void) => {

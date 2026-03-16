@@ -11,6 +11,13 @@
     flex-direction: column;
 }
 
+.channelPreviews {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    scrollbar-color: var(--surface-color) transparent;
+}
+
 .separator {
     width: 1px;
 }
