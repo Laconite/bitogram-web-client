@@ -31,3 +31,12 @@ button {
   -moz-user-select: none;
   -ms-user-select: none;
 }
+
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+input::-webkit-password-toggle-button,
+input::-webkit-textfield-decoration-container {
+  display: none;
+}

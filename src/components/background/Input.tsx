@@ -9,7 +9,7 @@ function Input({ isError, ...props }: InputProps) {
   const inputClass = `${classes.input} ${isError ? classes.inputError : ''}`.trim();
 
   return (
-    <input className={inputClass} {...props}/>
+    <input id={props.id} className={inputClass} {...props}/>
   );
 }
 

@@ -17,6 +17,7 @@ export type ChannelModel = {
     id?: number;
     type?: string;
     interlocutorId?: number;
+    createdAt?: bigint;
 
     startMessagesLoaded?: boolean;
     scroll?: number;
@@ -26,6 +27,7 @@ export type MessageModel = {
     senderId?: number;
     channelId?: number;
     text?: string;
+    createdAt?: bigint;
 };
 
 interface MainProps {
@@ -110,6 +112,7 @@ const Main = ({
                     senderId: lastMessage.senderId,
                     channelId: channel.id,
                     text: lastMessage.text,
+                    createdAt: lastMessage.createdAt,
                 });
             }
 
@@ -163,7 +166,8 @@ const Main = ({
                     id: message.id,
                     senderId: message.senderId,
                     channelId: channelId,
-                    text: message.text
+                    text: message.text,
+                    createdAt: message.createdAt,
                 });
             }
 

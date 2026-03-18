@@ -28,7 +28,7 @@ const Authentication = ({
     const PageId = {
         ENTERING_USERNAME: 0,
         ENTERING_PASSWORD: 1,
-        ENTERING_FULLNAME: 2,
+        ENTERING_FULL_NAME: 2,
         CREATING_PASSWORD: 3,
         ENTERING_EMAIL: 4,
         ENTERING_CONFIRMATION_CODE: 5
@@ -133,7 +133,7 @@ const Authentication = ({
 
             if (packet.values.usernameStatus == UsernameStatus.FREE) {
                 console.log("\tStatus: FREE");
-                setPageId(PageId.ENTERING_FULLNAME)
+                setPageId(PageId.ENTERING_FULL_NAME)
             } else if (packet.values.usernameStatus == UsernameStatus.BUSY) {
                 console.log("\tStatus: BUSY");
                 sendGetPasswordSaltPacket();
@@ -195,21 +195,25 @@ const Authentication = ({
         return new Uint8Array(await crypto.subtle.digest("SHA-256", combined));
     };
 
-    const checkUsername = (username: string) => {
+    const isValidUsername = (username: string) => {
         return username.length >= 2 && username.length <= 32;
     }
-    const checkPassword = (password: string) => {
+    const isValidPassword = (password: string) => {
         return password.length >= 8;
     }
-    const checkFullName = (fullName: string) => {
+    const isValidFullName = (fullName: string) => {
         return fullName.length >= 1 && fullName.length <= 64;
     }
-    const checkConfirmationCode = (confirmationCode: string) => {
+    const isValidEmail = (email: string) => {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+    }
+    const isValidConfirmationCode = (confirmationCode: string) => {
         return confirmationCode.length == 6;
     }
 
     const handleEnteringUsername = async () => {
-        if (checkUsername(usernameRef.current)) {
+        if (isValidUsername(usernameRef.current)) {
             setUsernameError(false);
         } else {
             setUsernameError(true);
@@ -219,7 +223,7 @@ const Authentication = ({
         sendCheckUsernamePacket(usernameRef.current);
     };
     const handleEnteringPassword = async () => {
-        if (checkPassword(password)) {
+        if (isValidPassword(password)) {
             setPasswordError(false);
         } else {
             setPasswordError(true);
@@ -232,7 +236,7 @@ const Authentication = ({
         sendAuthorizationPacket(password, passwordSaltRef.current);
     };
     const handleEnteringFullName = async () => {
-        if (checkFullName(fullName)) {
+        if (isValidFullName(fullName)) {
             setFullNameError(false);
             setPageId(PageId.CREATING_PASSWORD);
         } else {
@@ -242,14 +246,14 @@ const Authentication = ({
     const handleCreatingPassword = async () => {
         let error = false;
 
-        if (checkPassword(password)) {
+        if (isValidPassword(password)) {
             setPasswordError(false);
         } else {
             setPasswordError(true);
             error = true;
         }
 
-        if (checkPassword(repeatPassword) && password == repeatPassword) {
+        if (isValidPassword(repeatPassword) && password == repeatPassword) {
             setRepeatPasswordError(false);
         } else {
             setRepeatPasswordError(true);
@@ -262,10 +266,17 @@ const Authentication = ({
         setPageId(PageId.ENTERING_EMAIL);
     }
     const handleEnteringEmail = async () => {
+        if (isValidEmail(email)) {
+            setEmailError(false);
+        } else {
+            setEmailError(true);
+            return;
+        }
+
         sendRequestConfirmationCodePacket(email);
     }
     const handleEnteringConfirmationCode = async () => {
-        if (checkConfirmationCode(confirmationCode)) {
+        if (isValidConfirmationCode(confirmationCode)) {
             setConfirmationCodeError(false);
         } else {
             setConfirmationCodeError(true);
@@ -281,7 +292,7 @@ const Authentication = ({
     const pages = [
         {
             fields: [
-                { placeholder: "Username", value: username, setValue: setUsername, isError: usernameError },
+                { id: "username", type: "text", placeholder: "Username", value: username, setValue: setUsername, isError: usernameError },
             ],
             button: {
                 text: "Next", onClick: handleEnteringUsername
@@ -289,7 +300,7 @@ const Authentication = ({
         },
         {
             fields: [
-                { placeholder: "Password", value: password, setValue: setPassword, isError: passwordError },
+                { id: "password", type: "password", placeholder: "Password", value: password, setValue: setPassword, isError: passwordError },
             ],
             button: {
                 text: "Log in", onClick: handleEnteringPassword
@@ -297,7 +308,7 @@ const Authentication = ({
         },
         {
             fields: [
-                { placeholder: "Full name", value: fullName, setValue: setFullName, isError: fullNameError },
+                { id: "fullName", type: "text", placeholder: "Full name", value: fullName, setValue: setFullName, isError: fullNameError },
             ],
             button: {
                 text: "Next", onClick: handleEnteringFullName
@@ -305,8 +316,8 @@ const Authentication = ({
         },
         {
             fields: [
-                { placeholder: "Password", value: password, setValue: setPassword, isError: passwordError },
-                { placeholder: "Repeat password", value: repeatPassword, setValue: setRepeatPassword, isError: repeatPasswordError },
+                { id: "password", type: "password", placeholder: "Password", value: password, setValue: setPassword, isError: passwordError },
+                { id: "repeatPassword", type: "password", placeholder: "Repeat password", value: repeatPassword, setValue: setRepeatPassword, isError: repeatPasswordError },
             ],
             button: {
                 text: "Next", onClick: handleCreatingPassword
@@ -314,7 +325,7 @@ const Authentication = ({
         },
         {
             fields: [
-                { placeholder: "Email", value: email, setValue: setEmail, isError: emailError },
+                { id: "email", type: "text", placeholder: "Email", value: email, setValue: setEmail, isError: emailError },
             ],
             button: {
                 text: "Send code", onClick: handleEnteringEmail
@@ -322,7 +333,7 @@ const Authentication = ({
         },
         {
             fields: [
-                { placeholder: "Code", value: confirmationCode, setValue: setConfirmationCode, isError: confirmationCodeError },
+                { id: "confirmationCode", type: "text", placeholder: "Code", value: confirmationCode, setValue: setConfirmationCode, isError: confirmationCodeError },
             ],
             button: {
                 text: "Register", onClick: handleEnteringConfirmationCode
@@ -341,9 +352,10 @@ const Authentication = ({
     return (
         <div className={classes.screen} onKeyDown={handleKeyDown}>
             <div className={classes.form}>
-                {page.fields.map((field, index) => (
+                {page.fields.map((field) => (
                     <Input
-                        key={index}
+                        key={field.id}
+                        type={field.type}
                         placeholder={field.placeholder}
                         value={field.value}
                         onChange={(e) => field.setValue(e.target.value)}
