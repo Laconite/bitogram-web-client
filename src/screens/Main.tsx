@@ -143,6 +143,7 @@ const Main = ({
                 senderId: lastMessage.senderId,
                 channelId: channel.id,
                 text: lastMessage.text,
+                createdAt: lastMessage.createdAt,
             });
 
             updateMessages();
