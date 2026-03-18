@@ -113,7 +113,8 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             lastMessage: {
                                 id: int,
                                 senderId: int,
-                                text: string
+                                text: string,
+                                createdAt: i64,
                             }
                         }
                     `);
@@ -135,7 +136,8 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                         lastMessage: {
                             id: int,
                             senderId: int,
-                            text: string
+                            text: string,
+                            createdAt: i64,
                         }
                     `);
                     break;
@@ -144,7 +146,8 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                         id: int,
                         senderId: int,
                         channelId: int,
-                        text: string
+                        text: string,
+                        createdAt: i64,
                     `);
                     break;
                 case FROM_ID_BY_NAME.GET_MESSAGES:
@@ -153,7 +156,8 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                         messages: [] {
                             id: int,
                             senderId: int,
-                            text: string
+                            text: string,
+                            createdAt: i64,
                         }
                     `);
                     break;

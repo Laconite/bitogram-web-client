@@ -6,9 +6,9 @@ interface MessagesProps {
     id: number;
 }
 
-const Messages = ({ 
-    message, 
-    id 
+const Messages = ({
+    message,
+    id
 }: MessagesProps) => {
     const isMy = message.senderId === id;
     const messageClass = isMy ? classes['message-my'] : classes['message-other'];
@@ -16,7 +16,13 @@ const Messages = ({
     return (
         <div className={classes.container}>
             <div className={`${classes.message} ${messageClass}`}>
-                {message.text}
+                <div className={classes.messageText}>{message.text}</div>
+                <div className={classes.messageTime}>
+                    {new Date(Number(message.createdAt) * 1000).toLocaleTimeString([], {
+                        hour: 'numeric',
+                        minute: '2-digit'
+                    })}
+                </div>
             </div>
         </div>
     );

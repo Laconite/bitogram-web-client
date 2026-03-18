@@ -28,9 +28,19 @@
     gap: calc(0.4 * var(--font-size));
 }
 
+.infoRow {
+    display: flex;
+    flex-direction: row;
+}
+
 .fullName {
+    flex: 1;
     min-width: 0;
     color: var(--text-color);
+}
+
+.lastMessageTime {
+    color: var(--text-color-placeholder);
 }
 
 .lastMessageText {

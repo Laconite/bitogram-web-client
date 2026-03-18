@@ -1,9 +1,9 @@
-type FieldType = "int" | "string" | "bytes";
+type FieldType = "int" | "i64" | "string" | "bytes";
 
 export interface Structure {
     [key: string]: FieldValue;
 }
-export type FieldValue = Structure | FieldValue[] | number | string | Uint8Array;
+export type FieldValue = Structure | FieldValue[] | number | bigint | string | Uint8Array;
 
 const splitCode = (code: string): string[] => {
     const tokens: string[] = [];
@@ -18,10 +18,10 @@ const splitCode = (code: string): string[] => {
     while (i < code.length) {
         const character = peek();
 
-        if (/[a-zA-Z]/.test(character)) {
+        if (/[a-zA-Z0-9]/.test(character)) {
             let text = "";
 
-            while (i < code.length && /[a-zA-Z]/.test(peek())) {
+            while (i < code.length && /[a-zA-Z0-9]/.test(peek())) {
                 text += next();
             }
 
@@ -81,6 +81,9 @@ const ASTBuilder = {
                 } else if (tokens[tokenIndexRef.value] === "int") {
                     tokenIndexRef.value++;
                     fieldType = "int";
+                } else if (tokens[tokenIndexRef.value] === "i64") {
+                    tokenIndexRef.value++;
+                    fieldType = "i64";
                 } else if (tokens[tokenIndexRef.value] === "string") {
                     tokenIndexRef.value++;
                     fieldType = "string";
@@ -164,6 +167,20 @@ export class NetStream {
             return [null, offset];
         }
     }
+    readI64(offset: number = 0): [bigint | null, number] {
+        if (offset + 8 > this.buffer.length) {
+            return [null, offset];
+        }
+
+        const view = new DataView(
+            this.buffer.buffer,
+            this.buffer.byteOffset + offset,
+            8
+        );
+
+        const value = view.getBigInt64(0, false);
+        return [value, offset + 8];
+    }
     readString(offset: number = 0): [string | null, number] {
         const [data, newOffset] = this.readBytes(offset);
         if (data === null) return [null, offset];
@@ -223,6 +240,9 @@ export class NetStream {
 
                 if (child.type === "int") {
                     [fieldValue, offset] = this.readNumber(offset);
+                } else if (child.type === "i64") {
+                    console.log("Reading i64 field:", child.name);
+                    [fieldValue, offset] = this.readI64(offset);
                 } else if (child.type === "string") {
                     [fieldValue, offset] = this.readString(offset);
                 } else if (child.type === "bytes") {
@@ -265,6 +285,27 @@ export class NetStream {
         this.feed(encoded);
         return this;
     }
+    encodeI64(value: bigint): Uint8Array {
+        const MIN = -(1n << 63n);
+        const MAX = (1n << 63n) - 1n;
+
+        if (value < MIN || value > MAX) {
+            throw new RangeError("Value out of i64 range");
+        }
+
+        const bytes = new Uint8Array(8);
+
+        for (let i = 7; i >= 0; i--) {
+            bytes[7 - i] = Number((value >> BigInt(i * 8)) & 0xFFn);
+        }
+
+        return bytes;
+    }
+    writeI64(value: bigint): this {
+        const encoded = this.encodeI64(value);
+        this.feed(encoded);
+        return this;
+    }
     writeString(str: string): this {
         const data = new TextEncoder().encode(str);
         return this.writeBytes(data);
@@ -292,7 +333,13 @@ export class NetStream {
                     throw new Error(`Field "${fieldName}" must be an int`);
                 }
                 this.writeNumber(fieldValue);
-            } 
+            }
+            else if (fieldType === "i64") {
+                if (typeof fieldValue !== "bigint") {
+                    throw new Error(`Field "${fieldName}" must be an i64`);
+                }
+                this.writeI64(fieldValue);
+            }
             else if (fieldType === "string") {
                 if (typeof fieldValue !== "string") {
                     throw new Error(`Field "${fieldName}" must be a string`);
