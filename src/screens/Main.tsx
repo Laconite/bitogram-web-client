@@ -12,6 +12,8 @@ export type UserModel = {
     id: number;
     username?: string;
     fullName?: string;
+
+    isOnline?: number;
 };
 export type ChannelModel = {
     id?: number;
@@ -54,6 +56,10 @@ const Main = ({
     const [messages, setMessages, messagesRef] = useRefState<MessageModel[]>([]);
 
     const messagesByChannelIdRef = useRef<Map<number, MessageModel[]>>(new Map());
+
+    const updateUsers = () => {
+        setUsers([...usersRef.current]);
+    }
 
     const updateChannels = () => {
         setChannels([...channelsRef.current]);
@@ -116,9 +122,20 @@ const Main = ({
                 });
             }
 
+            for (let userIndex = 0; userIndex < packet.values.users.length; userIndex++) {
+                const user = packet.values.users[userIndex];
+                
+                usersRef.current.push({
+                    id: user.id,
+                    username: user.username,
+                    fullName: user.fullName,
+                    isOnline: 0,
+                });
+            }
+
             updateMessages();
             updateChannels();
-            setUsers(packet.values.users);
+            updateUsers();
         }
         const handleCreateChannelPacket = (packet: NetPacket) => {
             console.log("Packet: Create channel");
@@ -174,38 +191,68 @@ const Main = ({
 
             updateMessages();
         }
+        const handleUserStatusPacket = (packet: NetPacket) => {
+            console.log("Packet: User is online");
+
+            const userId = packet.values.userId;
+            const isOnline = packet.values.isOnline;
+
+            setUsers(prev => {
+                const newUsers = [...prev];
+                const user = newUsers.find(u => u.id === userId);
+
+                if (user) {
+                    user.isOnline = isOnline;
+                }
+
+                return newUsers;
+            });
+        }
 
         subscribePacket(FROM_ID_BY_NAME.GET_INIT_DATA, handleGetInitDataPacket);
         subscribePacket(FROM_ID_BY_NAME.CREATE_CHANNEL, handleCreateChannelPacket);
         subscribePacket(FROM_ID_BY_NAME.MESSAGE, handleMessagePacket);
         subscribePacket(FROM_ID_BY_NAME.GET_MESSAGES, handleGetMessagesPacket);
+        subscribePacket(FROM_ID_BY_NAME.USER_STATUS, handleUserStatusPacket);
 
         return () => {
             unsubscribePacket(FROM_ID_BY_NAME.GET_INIT_DATA, handleGetInitDataPacket);
             unsubscribePacket(FROM_ID_BY_NAME.CREATE_CHANNEL, handleCreateChannelPacket);
             unsubscribePacket(FROM_ID_BY_NAME.MESSAGE, handleMessagePacket);
             unsubscribePacket(FROM_ID_BY_NAME.GET_MESSAGES, handleGetMessagesPacket);
+            unsubscribePacket(FROM_ID_BY_NAME.USER_STATUS, handleUserStatusPacket);
         };
     }, [subscribePacket, unsubscribePacket]);
 
     const sendGetMessagesPacket = (channelId: number, startMessageId: number, messagesCount: number) => {
         const netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.GET_MESSAGES);
         netStream.writeStructure({
-            id: "int",
             channelId: "int",
             startMessageId: "int",
             countMessages: "int",
         }, [
-            TO_ID_BY_NAME.GET_MESSAGES,
             channelId,
             startMessageId,
             messagesCount,
         ]);
         sendPacket(netStream.buffer);
     }
+    const sendSubscribeToReceiveUserStatusPacket = (userId: number) => {
+        const netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.SUBSCRIBE_TO_RECEIVE_USER_STATUS);
+        netStream.writeStructure({
+            userId: "int",
+        }, [
+            userId,
+        ]);
+        sendPacket(netStream.buffer);
+    }
 
     const selectChannel = (channel: ChannelModel) => {
         if (!selectedChannelRef.current || selectedChannelRef.current.id !== channel.id) {
+            sendSubscribeToReceiveUserStatusPacket(channel.interlocutorId!);
+            
             if (channel.id && !channel.startMessagesLoaded) {
                 sendGetMessagesPacket(
                     channel.id,
@@ -220,8 +267,7 @@ const Main = ({
         }
     }
 
-    const width = useWindowWidth();
-    const isMobile = width < 768;
+    const isMobile = useWindowWidth() < 768;
 
     const lastIds = new Map<number, number>();
     const previewChannels: ChannelModel[] = [...channels].sort((a, b) => {

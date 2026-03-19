@@ -241,7 +241,6 @@ export class NetStream {
                 if (child.type === "int") {
                     [fieldValue, offset] = this.readNumber(offset);
                 } else if (child.type === "i64") {
-                    console.log("Reading i64 field:", child.name);
                     [fieldValue, offset] = this.readI64(offset);
                 } else if (child.type === "string") {
                     [fieldValue, offset] = this.readString(offset);

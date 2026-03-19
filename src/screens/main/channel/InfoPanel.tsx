@@ -15,8 +15,10 @@ const InfoPanel = ({
     users
 }: InfoPanelProps) => {
     const isMobile = useWindowWidth() < 768;
-    const channelName = users.find(user => user.id === channel.interlocutorId)?.fullName || "(^~^)";
-    
+    const interlocutor = users.find(user => user.id === channel.interlocutorId);
+    const channelName = interlocutor?.fullName || "(^~^)";
+    const statusText = interlocutor?.isOnline ? "online" : "last seen recently";
+
     return (
         <div className={classes.container}>
             {isMobile && (
@@ -29,7 +31,7 @@ const InfoPanel = ({
             
             <div className={classes.info}>
                 <div className={classes.name}>{channelName}</div>
-                <div className={classes.status}>last seen recently</div>    
+                <div className={classes.status}>{statusText}</div>    
             </div>
         </div>
     )

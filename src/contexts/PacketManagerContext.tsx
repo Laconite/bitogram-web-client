@@ -14,8 +14,7 @@ export const TO_ID_BY_NAME = {
     CREATE_CHANNEL: 0x08,
     MESSAGE: 0x09,
     GET_MESSAGES: 0x0a,
-    USERS_COUNT: 0x0b,
-    SESSIONS_COUNT: 0x0c,
+    SUBSCRIBE_TO_RECEIVE_USER_STATUS: 0x0b,
 };
 export const FROM_ID_BY_NAME = {
     SESSION: 0x00,
@@ -29,8 +28,7 @@ export const FROM_ID_BY_NAME = {
     CREATE_CHANNEL: 0x08,
     MESSAGE: 0x09,
     GET_MESSAGES: 0x0a,
-    USERS_COUNT: 0x0b,
-    SESSIONS_COUNT: 0x0c,
+    USER_STATUS: 0x0b,
 };
 
 type PacketManagerContextType = {
@@ -161,9 +159,11 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                         }
                     `);
                     break;
-                case FROM_ID_BY_NAME.USERS_COUNT:
-                    break;
-                case FROM_ID_BY_NAME.SESSIONS_COUNT:
+                case FROM_ID_BY_NAME.USER_STATUS:
+                    [values, offset] = netStream.current.readStructureWithNames(`
+                        userId: int,
+                        isOnline: int,
+                    `)
                     break;
                 default:
                     break;
