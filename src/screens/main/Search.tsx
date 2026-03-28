@@ -45,6 +45,11 @@ const Search = ({
     const sendSearchPacket = async (searchText: string) => {
         const netStream = new NetStream();
         netStream.writeNumber(TO_ID_BY_NAME.SEARCH);
+        netStream.writeStructure({
+            searchText: "string",
+        }, [
+            searchText,
+        ]);
         sendPacket(netStream.buffer);
     }
 
