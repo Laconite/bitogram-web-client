@@ -22,6 +22,8 @@
     flex: 1;
     padding: 12px 0;
     color: var(--text-color);
+    font-size: var(--font-size);
+    line-height: var(--line-height);
 
     word-wrap: break-word;
     word-break: break-word;

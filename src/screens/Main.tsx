@@ -12,17 +12,23 @@ export type UserModel = {
     id: number;
     username?: string;
     fullName?: string;
+    email?: string;
 
     isOnline?: number;
 };
 export type ChannelModel = {
     id?: number;
-    type?: string;
-    interlocutorId?: number;
     createdAt?: bigint;
+    type?: string;
+    firstMessageId?: number;
+
+    interlocutorId?: number;
 
     startMessagesLoaded?: boolean;
     scroll?: number;
+    shouldScrollToBottom?: boolean;
+    prevScrollHeight?: number;
+    messagesLoading?: boolean;
 };
 export type MessageModel = {
     id: number;
@@ -95,6 +101,8 @@ const Main = ({
     const [searchSearching, setSearchSearching] = useState<boolean>(false);
     const [searchSearchedUsersIds, setSearchSearchedUsersIds] = useState<number[]>([]);
 
+    const channelAfterMessagesLoading = useRef<ChannelModel | null>(null)
+
     const { sendPacket, subscribePacket, unsubscribePacket } = usePacketManager();
 
     useEffect(() => {
@@ -111,6 +119,7 @@ const Main = ({
                     id: channel.id,
                     type: channel.type,
                     interlocutorId: channel.interlocutorId,
+                    firstMessageId: channel.firstMessageId,
                 });
 
                 addMessage({
@@ -147,6 +156,7 @@ const Main = ({
                 id: channel.id,
                 type: channel.type,
                 interlocutorId: channel.interlocutorId,
+                firstMessageId: channel.firstMessageId,
             }
 
             setChannels(prev => [...prev, newChannel]);
@@ -190,6 +200,11 @@ const Main = ({
             }
 
             updateMessages();
+
+            if (channelAfterMessagesLoading.current) {
+                setSelectedChannel(channelAfterMessagesLoading.current);
+                channelAfterMessagesLoading.current = null;
+            }   
         }
         const handleUserStatusPacket = (packet: NetPacket) => {
             console.log("Packet: User is online");
@@ -224,13 +239,13 @@ const Main = ({
         };
     }, [subscribePacket, unsubscribePacket]);
 
-    const sendGetMessagesPacket = (channelId: number, startMessageId: number, messagesCount: number) => {
+    const sendGetMessagesPacket = async (channelId: number, startMessageId: number, messagesCount: number) => {
         const netStream = new NetStream();
         netStream.writeNumber(TO_ID_BY_NAME.GET_MESSAGES);
         netStream.writeStructure({
             channelId: "int",
             startMessageId: "int",
-            countMessages: "int",
+            messagesCount: "int",
         }, [
             channelId,
             startMessageId,
@@ -238,7 +253,7 @@ const Main = ({
         ]);
         sendPacket(netStream.buffer);
     }
-    const sendSubscribeToReceiveUserStatusPacket = (userId: number) => {
+    const sendSubscribeToReceiveUserStatusPacket = async (userId: number) => {
         const netStream = new NetStream();
         netStream.writeNumber(TO_ID_BY_NAME.SUBSCRIBE_TO_RECEIVE_USER_STATUS);
         netStream.writeStructure({
@@ -261,9 +276,10 @@ const Main = ({
                 );
 
                 channel.startMessagesLoaded = true;
+                channelAfterMessagesLoading.current = channel;
+            } else {
+                setSelectedChannel(channel);
             }
-
-            setSelectedChannel(channel);
         }
     }
 

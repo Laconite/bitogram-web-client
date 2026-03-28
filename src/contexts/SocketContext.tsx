@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, type RefObject } from 'react';
 import useRefState from '@hooks/useRefState';
+import { isMobile } from '@hooks/useIsMobile';
 
 type WSContextType = {
   socket: WebSocket | null;
@@ -41,9 +42,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const connect = () => {
-    if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
-      return;
-    }
+    if (socketRef.current?.readyState === WebSocket.OPEN) return;
 
     const ws = new WebSocket(getUrl());
     ws.binaryType = "arraybuffer";
@@ -84,7 +83,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        connect();
+        if (isMobile) {
+          setTimeout(() => {
+            connect();
+          }, 200);
+        }
       }
     };
 
@@ -94,7 +97,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       disconnect();
     };
-  }, []);
+  }, [isMobile]);
 
   return (
     <SocketContext.Provider value={{ socket, socketRef, subscribe, unsubscribe }}>

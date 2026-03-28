@@ -35,6 +35,13 @@ type PacketManagerContextType = {
     sendPacket: (payload: Uint8Array) => void;
     subscribePacket: (packetId: number, callback: (packet: NetPacket) => void) => void;
     unsubscribePacket: (packetId: number, callback: (packet: NetPacket) => void) => void;
+
+    sendCheckUsernamePacket: (username: string) => Promise<void>;
+    sendGetPasswordSaltPacket: () => Promise<void>;
+    sendAuthorizationPacket: (password: string, passwordSalt: Uint8Array) => Promise<void>;
+    sendRequestConfirmationCodePacket: (email: string) => Promise<void>;
+    sendRegistrationPacket: (password: string, passwordSalt: Uint8Array, fullName: string, confirmationCode: string) => Promise<void>;
+    sendGetInitDataPacket: () => Promise<void>;
 };
 
 const PacketManagerContext = createContext<PacketManagerContextType | null>(null);
@@ -108,6 +115,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             id: int,
                             type: string,
                             interlocutorId: int,
+                            firstMessageId: int,
                             lastMessage: {
                                 id: int,
                                 senderId: int,
@@ -131,6 +139,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                         id: int,                            
                         type: string,
                         interlocutorId: int,
+                        firstMessageId: int,
                         lastMessage: {
                             id: int,
                             senderId: int,
@@ -199,8 +208,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         const netStream = new NetStream();
         netStream.writeStructure({ payload: "bytes" }, [payload]);
         socketRef.current.send(netStream.buffer);
-    }
-
+    }   
     const subscribePacket = (packetId: number, callback: (packet: NetPacket) => void) => {
         if (!callbackRefs.current[packetId]) callbackRefs.current[packetId] = new Set();
         callbackRefs.current[packetId].add(callback);
@@ -209,9 +217,93 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         callbackRefs.current[packetId]?.delete(callback);
     };
 
+    const calculatePasswordHash = async (password: string, salt: Uint8Array) => {
+        const encoder = new TextEncoder();
+        const passwordBytes = encoder.encode(password);
+        const combined = new Uint8Array(passwordBytes.length + salt.length);
+
+        combined.set(passwordBytes);
+        combined.set(salt, passwordBytes.length);
+
+        return new Uint8Array(await crypto.subtle.digest("SHA-256", combined));
+    };
+
+    const sendCheckUsernamePacket = async (username: string) => {
+        let netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.CHECK_USERNAME);
+        netStream.writeStructure({
+            username: "string",
+        }, [
+            username,
+        ]);
+        sendPacket(netStream.buffer);
+    }
+    const sendGetPasswordSaltPacket = async () => {
+        let netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.GET_PASSWORD_SALT);
+        sendPacket(netStream.buffer);
+    }
+    const sendAuthorizationPacket = async (password: string, passwordSalt: Uint8Array) => {
+        const passwordHash = await calculatePasswordHash(password, passwordSalt);
+
+        let netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.AUTHORIZATION);
+        netStream.writeStructure({
+            passwordHash: "bytes",
+        }, [
+            passwordHash,
+        ]);
+        sendPacket(netStream.buffer);
+    }
+    const sendRequestConfirmationCodePacket = async (email: string) => {
+        let netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.REQUEST_CONFIRMATION_CODE);
+        netStream.writeStructure({ 
+            email: "string",
+        }, [ 
+            email,
+        ]);
+        sendPacket(netStream.buffer);
+    }
+    const sendRegistrationPacket = async (password: string, passwordSalt: Uint8Array, fullName: string, confirmationCode: string) => {
+        let passwordHash = await calculatePasswordHash(password, passwordSalt);
+
+        let netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.REGISTRATION);
+        netStream.writeStructure({
+            passwordSalt: "bytes",
+            passwordHash: "bytes",
+            fullName: "string",
+            confirmationCode: "string",
+        }, [
+            passwordSalt,
+            passwordHash,
+            fullName,
+            confirmationCode,
+        ]);
+        sendPacket(netStream.buffer);
+    }
+    const sendGetInitDataPacket = async () => {
+        let netStream = new NetStream();
+        netStream.writeNumber(TO_ID_BY_NAME.GET_INIT_DATA);
+        sendPacket(netStream.buffer);
+    }
+
     return (
-        <PacketManagerContext.Provider value={{ sendPacket, subscribePacket, unsubscribePacket }}>
+        <PacketManagerContext.Provider value={{ 
+                sendPacket, 
+                subscribePacket, 
+                unsubscribePacket, 
+
+                sendCheckUsernamePacket,
+                sendGetPasswordSaltPacket,
+                sendAuthorizationPacket,
+                sendRequestConfirmationCodePacket,
+                sendRegistrationPacket,
+                sendGetInitDataPacket,
+            }}>
             {children}
         </PacketManagerContext.Provider>
     );
 };
+

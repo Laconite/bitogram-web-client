@@ -28,10 +28,8 @@ const Authentication = ({
     const PageId = {
         ENTERING_USERNAME: 0,
         ENTERING_PASSWORD: 1,
-        ENTERING_FULL_NAME: 2,
-        CREATING_PASSWORD: 3,
-        ENTERING_EMAIL: 4,
-        ENTERING_CONFIRMATION_CODE: 5
+        ENTERING_REGISTRATION_DATA: 2,
+        ENTERING_CONFIRMATION_CODE: 3
     };
 
     const [pageId, setPageId] = useState(PageId.ENTERING_USERNAME);
@@ -47,74 +45,17 @@ const Authentication = ({
     const [emailError, setEmailError] = useState(false);
     const [confirmationCodeError, setConfirmationCodeError] = useState(false);
 
-    const { sendPacket, subscribePacket, unsubscribePacket } = usePacketManager();
-
-    const sendCheckUsernamePacket = async (username: string) => {
-        let netStream = new NetStream();
-        netStream.writeStructure({
-            id: "int",
-            username: "string",
-        }, [
-            TO_ID_BY_NAME.CHECK_USERNAME,
-            username,
-        ]);
-        sendPacket(netStream.buffer);
-    }
-    const sendGetPasswordSaltPacket = async () => {
-        let netStream = new NetStream();
-        netStream.writeStructure({
-            id: "int",
-        }, [
-            TO_ID_BY_NAME.GET_PASSWORD_SALT,
-        ]);
-        sendPacket(netStream.buffer);
-    }
-    const sendAuthorizationPacket = async (password: string, passwordSalt: Uint8Array) => {
-        const passwordHash = await calculatePasswordHash(password, passwordSalt);
-
-        let netStream = new NetStream();
-        netStream.writeStructure({
-            id: "int",
-            passwordHash: "bytes",
-        }, [
-            TO_ID_BY_NAME.AUTHORIZATION, 
-            passwordHash,
-        ]);
-        sendPacket(netStream.buffer);
-    }
-    const sendRequestConfirmationCodePacket = async (email: string) => {
-        let netStream = new NetStream();
-        netStream.writeStructure({ id: "int", email: "string" }, [TO_ID_BY_NAME.REQUEST_CONFIRMATION_CODE, email]);
-        sendPacket(netStream.buffer);
-    }
-    const sendRegistrationPacket = async (password: string, passwordSalt: Uint8Array, fullName: string, confirmationCode: string) => {
-        let passwordHash = await calculatePasswordHash(password, passwordSalt);
-
-        let netStream = new NetStream();
-        netStream.writeStructure({
-            id: "int",
-            passwordSalt: "bytes",
-            passwordHash: "bytes",
-            fullName: "string",
-            confirmationCode: "string",
-        }, [
-            TO_ID_BY_NAME.REGISTRATION,
-            passwordSalt,
-            passwordHash,
-            fullName,
-            confirmationCode,
-        ]);
-        sendPacket(netStream.buffer);
-    }
-    const sendGetInitDataPacket = async () => {
-        let netStream = new NetStream();
-        netStream.writeStructure({
-            id: "int",
-        }, [
-            TO_ID_BY_NAME.GET_INIT_DATA,
-        ]);
-        sendPacket(netStream.buffer);
-    }
+    const { 
+        subscribePacket, 
+        unsubscribePacket, 
+        
+        sendCheckUsernamePacket, 
+        sendGetPasswordSaltPacket, 
+        sendAuthorizationPacket,
+        sendRequestConfirmationCodePacket, 
+        sendRegistrationPacket, 
+        sendGetInitDataPacket
+    } = usePacketManager();
 
     useEffect(() => {
         const handleSessionPacket = (packet: NetPacket) => {
@@ -133,7 +74,7 @@ const Authentication = ({
 
             if (packet.values.usernameStatus == UsernameStatus.FREE) {
                 console.log("\tStatus: FREE");
-                setPageId(PageId.ENTERING_FULL_NAME)
+                setPageId(PageId.ENTERING_REGISTRATION_DATA)
             } else if (packet.values.usernameStatus == UsernameStatus.BUSY) {
                 console.log("\tStatus: BUSY");
                 sendGetPasswordSaltPacket();
@@ -184,17 +125,6 @@ const Authentication = ({
         };
     }, [subscribePacket, unsubscribePacket]);
 
-    const calculatePasswordHash = async (password: string, salt: Uint8Array) => {
-        const encoder = new TextEncoder();
-        const passwordBytes = encoder.encode(password);
-        const combined = new Uint8Array(passwordBytes.length + salt.length);
-
-        combined.set(passwordBytes);
-        combined.set(salt, passwordBytes.length);
-
-        return new Uint8Array(await crypto.subtle.digest("SHA-256", combined));
-    };
-
     const isValidUsername = (username: string) => {
         return username.length >= 2 && username.length <= 32;
     }
@@ -235,16 +165,15 @@ const Authentication = ({
 
         sendAuthorizationPacket(password, passwordSaltRef.current);
     };
-    const handleEnteringFullName = async () => {
+    const handleEnteringRegistrationData = async () => {
+        let error = false;
+
         if (isValidFullName(fullName)) {
             setFullNameError(false);
-            setPageId(PageId.CREATING_PASSWORD);
         } else {
             setFullNameError(true);
+            error = true;
         }
-    }
-    const handleCreatingPassword = async () => {
-        let error = false;
 
         if (isValidPassword(password)) {
             setPasswordError(false);
@@ -260,20 +189,18 @@ const Authentication = ({
             error = true;
         }
 
-        if (error)
-            return;
-
-        setPageId(PageId.ENTERING_EMAIL);
-    }
-    const handleEnteringEmail = async () => {
         if (isValidEmail(email)) {
             setEmailError(false);
         } else {
             setEmailError(true);
-            return;
+            error = true;
         }
 
+        if (error)
+            return;
+
         sendRequestConfirmationCodePacket(email);
+        setPageId(PageId.ENTERING_CONFIRMATION_CODE);
     }
     const handleEnteringConfirmationCode = async () => {
         if (isValidConfirmationCode(confirmationCode)) {
@@ -309,26 +236,12 @@ const Authentication = ({
         {
             fields: [
                 { id: "fullName", type: "text", placeholder: "Full name", value: fullName, setValue: setFullName, isError: fullNameError },
-            ],
-            button: {
-                text: "Next", onClick: handleEnteringFullName
-            },
-        },
-        {
-            fields: [
                 { id: "password", type: "password", placeholder: "Password", value: password, setValue: setPassword, isError: passwordError },
                 { id: "repeatPassword", type: "password", placeholder: "Repeat password", value: repeatPassword, setValue: setRepeatPassword, isError: repeatPasswordError },
-            ],
-            button: {
-                text: "Next", onClick: handleCreatingPassword
-            },
-        },
-        {
-            fields: [
                 { id: "email", type: "text", placeholder: "Email", value: email, setValue: setEmail, isError: emailError },
             ],
             button: {
-                text: "Send code", onClick: handleEnteringEmail
+                text: "Next", onClick: handleEnteringRegistrationData
             },
         },
         {

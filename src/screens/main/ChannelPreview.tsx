@@ -13,6 +13,31 @@ const ChannelPreview = ({ channel, onClick, users, getMessages }: ChannelPreview
     const messages = channel.id ? getMessages(channel.id) : [];
     const lastMessage = messages.length != 0 ? messages[messages.length - 1] : null;
 
+    const formatMessageDate = (timestamp: number) => {
+        const messageDate = new Date(timestamp * 1000);
+        const now = new Date();
+
+        const isToday =
+            messageDate.getDate() === now.getDate() &&
+            messageDate.getMonth() === now.getMonth() &&
+            messageDate.getFullYear() === now.getFullYear();
+
+        const diffTime = now.getTime() - messageDate.getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+        if (isToday) {
+            return messageDate.toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit',
+            });
+        } else if (diffDays < 7) {
+            return messageDate.toLocaleDateString('en-EN', { weekday: 'short' });
+        } else {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${pad(messageDate.getDate())}.${pad(messageDate.getMonth() + 1)}.${messageDate.getFullYear().toString().slice(-2)}`;
+        }
+    };
+
     return (
         <button className={classes.container} onClick={() => onClick?.(channel)}>
             <div className={classes.avatar}></div>
@@ -22,10 +47,7 @@ const ChannelPreview = ({ channel, onClick, users, getMessages }: ChannelPreview
                     <div className={classes.fullName}>{channelName}</div>
                     {lastMessage != null && lastMessage.createdAt != null &&
                         <div className={classes.lastMessageTime}>
-                            {new Date(Number(lastMessage.createdAt) * 1000).toLocaleTimeString([], {
-                                hour: 'numeric',
-                                minute: '2-digit'
-                            })}
+                            {formatMessageDate(Number(lastMessage.createdAt))}
                         </div>
                     }
                 </div>

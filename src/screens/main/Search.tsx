@@ -21,7 +21,7 @@ interface SearchProps {
     users: UserModel[];
     setUsers: Dispatch<SetStateAction<UserModel[]>>;
     usersRef: RefObject<UserModel[]>;
-    
+
     channels: ChannelModel[];
     setChannels: Dispatch<SetStateAction<ChannelModel[]>>;
 
@@ -44,13 +44,7 @@ const Search = ({
 
     const sendSearchPacket = async (searchText: string) => {
         const netStream = new NetStream();
-        netStream.writeStructure({
-            id: "int",
-            searchText: "string"
-        }, [
-            TO_ID_BY_NAME.SEARCH,
-            searchText
-        ]);
+        netStream.writeNumber(TO_ID_BY_NAME.SEARCH);
         sendPacket(netStream.buffer);
     }
 
