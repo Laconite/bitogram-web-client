@@ -138,8 +138,8 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                     [values, offset] = netStream.current.readStructureWithNames(`
                         id: int,                            
                         type: string,
-                        interlocutorId: int,
                         firstMessageId: int,
+                        interlocutorId: int,
                         lastMessage: {
                             id: int,
                             senderId: int,
