@@ -330,8 +330,6 @@ const Main = ({
                                 getMessages={getMessages} />
                         ))}
                     </div>
-
-                    <div className={classes.surfaceFiller} />
                 </div>
             }
 

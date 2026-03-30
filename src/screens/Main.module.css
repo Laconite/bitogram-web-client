@@ -12,19 +12,16 @@
 }
 
 .channelPreviews {
+    flex: 1;
     display: flex;
     flex-direction: column;
+    background-color: var(--surface-color);
     overflow-y: auto;
-    scrollbar-color: var(--surface-color) transparent;
+    scrollbar-color: var(--surface-input-color) transparent;
 }
 
 .separator {
     width: 1px;
-}
-
-.surfaceFiller {
-    flex: 1;
-    background-color: var(--surface-color);
 }
 
 .hidden {
