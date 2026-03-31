@@ -94,11 +94,10 @@ const Search = ({
             });
 
             packet.values.users.forEach((user: UserModel) => {
-                user.isOnline = 0;
-
                 const existing = mergedMap.get(user.id);
 
                 if (!existing) {
+                    user.isOnline = 0;
                     mergedMap.set(user.id, user);
                 } else {
                     mergedMap.set(user.id, {
