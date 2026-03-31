@@ -62,51 +62,52 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     const handleMessage = (event: MessageEvent) => {
         netStream.current.feed(new Uint8Array(event.data));
 
-        if (netPacket.current === null) {
-            const [id, discardBytes] = netStream.current.readNumber();
+        while (netStream.current.buffer.length > 0) {
+            if (netPacket.current === null) {
+                const [id, discardBytes] = netStream.current.readNumber();
 
-            if (id === null)
-                return;
+                if (id === null)
+                    return;
 
-            netPacket.current = new NetPacket(id);
-            netStream.current.discard(discardBytes);
-        }
+                netPacket.current = new NetPacket(id);
+                netStream.current.discard(discardBytes);
+            }
 
-        if (netPacket.current !== null) {
-            let offset: number | null = null;
-            let values: Record<string, any> | null = null;
+            if (netPacket.current !== null) {
+                let offset: number | null = null;
+                let values: Record<string, any> | null = null;
 
-            switch (netPacket.current.id) {
-                case FROM_ID_BY_NAME.SESSION:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                switch (netPacket.current.id) {
+                    case FROM_ID_BY_NAME.SESSION:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         key: bytes
                     `);
-                    break;
-                case FROM_ID_BY_NAME.CHECK_USERNAME:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.CHECK_USERNAME:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         usernameStatus: int
                     `);
-                    break;
-                case FROM_ID_BY_NAME.GET_PASSWORD_SALT:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.GET_PASSWORD_SALT:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         passwordSalt: bytes
                     `);
-                    break;
-                case FROM_ID_BY_NAME.AUTHORIZATION:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.AUTHORIZATION:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         userId: int
                     `);
-                    break;
-                case FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE:
-                    [values, offset] = [[], null];
-                    break;
-                case FROM_ID_BY_NAME.REGISTRATION:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE:
+                        [values, offset] = [[], null];
+                        break;
+                    case FROM_ID_BY_NAME.REGISTRATION:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         userId: int
                     `);
-                    break;
-                case FROM_ID_BY_NAME.GET_INIT_DATA:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.GET_INIT_DATA:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         users: [] {
                             id: int,
                             fullName: string
@@ -124,18 +125,18 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             }
                         }
                     `);
-                    break;
-                case FROM_ID_BY_NAME.SEARCH:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.SEARCH:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         users: [] {
                             id: int,
                             username: string, 
                             fullName: string
                         }
                     `);
-                    break;
-                case FROM_ID_BY_NAME.CREATE_CHANNEL:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.CREATE_CHANNEL:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         id: int,                            
                         type: string,
                         firstMessageId: int,
@@ -147,18 +148,18 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             createdAt: i64,
                         }
                     `);
-                    break;
-                case FROM_ID_BY_NAME.MESSAGE:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.MESSAGE:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         id: int,
                         senderId: int,
                         channelId: int,
                         text: string,
                         createdAt: i64,
                     `);
-                    break;
-                case FROM_ID_BY_NAME.GET_MESSAGES:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.GET_MESSAGES:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         channelId: int,
                         messages: [] {
                             id: int,
@@ -167,31 +168,36 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             createdAt: i64,
                         }
                     `);
-                    break;
-                case FROM_ID_BY_NAME.USER_STATUS:
-                    [values, offset] = netStream.current.readStructureWithNames(`
+                        break;
+                    case FROM_ID_BY_NAME.USER_STATUS:
+                        [values, offset] = netStream.current.readStructureWithNames(`
                         userId: int,
                         isOnline: int,
                     `)
-                    break;
-                default:
-                    break;
-            }
-
-            if (offset !== null) {
-                netStream.current.discard(offset);
-            }
-
-            if (values !== null) {
-                netPacket.current.values = values;
-
-                const callbacks = callbackRefs.current[netPacket.current.id];
-                if (callbacks) {
-                    const packet = netPacket.current;
-                    callbacks.forEach((callback) => callback({ ...packet }));
+                        break;
+                    default:
+                        break;
                 }
 
-                netPacket.current = null;
+                if (offset !== null) {
+                    netStream.current.discard(offset);
+                } else {
+                    break;
+                }
+
+                if (values !== null) {
+                    netPacket.current.values = values;
+
+                    const callbacks = callbackRefs.current[netPacket.current.id];
+                    if (callbacks) {
+                        const packet = netPacket.current;
+                        callbacks.forEach((callback) => callback({ ...packet }));
+                    }
+
+                    netPacket.current = null;
+                } else {
+                    break;
+                }
             }
         }
     };
@@ -208,7 +214,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         const netStream = new NetStream();
         netStream.writeStructure({ payload: "bytes" }, [payload]);
         socketRef.current.send(netStream.buffer);
-    }   
+    }
     const subscribePacket = (packetId: number, callback: (packet: NetPacket) => void) => {
         if (!callbackRefs.current[packetId]) callbackRefs.current[packetId] = new Set();
         callbackRefs.current[packetId].add(callback);
@@ -258,9 +264,9 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     const sendRequestConfirmationCodePacket = async (email: string) => {
         let netStream = new NetStream();
         netStream.writeNumber(TO_ID_BY_NAME.REQUEST_CONFIRMATION_CODE);
-        netStream.writeStructure({ 
+        netStream.writeStructure({
             email: "string",
-        }, [ 
+        }, [
             email,
         ]);
         sendPacket(netStream.buffer);
@@ -290,18 +296,18 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     }
 
     return (
-        <PacketManagerContext.Provider value={{ 
-                sendPacket, 
-                subscribePacket, 
-                unsubscribePacket, 
+        <PacketManagerContext.Provider value={{
+            sendPacket,
+            subscribePacket,
+            unsubscribePacket,
 
-                sendCheckUsernamePacket,
-                sendGetPasswordSaltPacket,
-                sendAuthorizationPacket,
-                sendRequestConfirmationCodePacket,
-                sendRegistrationPacket,
-                sendGetInitDataPacket,
-            }}>
+            sendCheckUsernamePacket,
+            sendGetPasswordSaltPacket,
+            sendAuthorizationPacket,
+            sendRequestConfirmationCodePacket,
+            sendRegistrationPacket,
+            sendGetInitDataPacket,
+        }}>
             {children}
         </PacketManagerContext.Provider>
     );
