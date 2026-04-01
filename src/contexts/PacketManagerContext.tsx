@@ -29,6 +29,8 @@ export const FROM_ID_BY_NAME = {
     MESSAGE: 0x09,
     GET_MESSAGES: 0x0a,
     USER_STATUS: 0x0b,
+
+    USER: 0x0c,
 };
 
 type PacketManagerContextType = {
@@ -80,100 +82,107 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                 switch (netPacket.current.id) {
                     case FROM_ID_BY_NAME.SESSION:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        key: bytes
-                    `);
+                            key: bytes
+                        `);
                         break;
                     case FROM_ID_BY_NAME.CHECK_USERNAME:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        usernameStatus: int
-                    `);
+                            usernameStatus: int
+                        `);
                         break;
                     case FROM_ID_BY_NAME.GET_PASSWORD_SALT:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        passwordSalt: bytes
-                    `);
+                            passwordSalt: bytes
+                        `);
                         break;
                     case FROM_ID_BY_NAME.AUTHORIZATION:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        userId: int
-                    `);
+                            userId: int
+                        `);
                         break;
                     case FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE:
                         [values, offset] = [[], null];
                         break;
                     case FROM_ID_BY_NAME.REGISTRATION:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        userId: int
-                    `);
+                            userId: int
+                        `);
                         break;
                     case FROM_ID_BY_NAME.GET_INIT_DATA:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        users: [] {
-                            id: int,
-                            fullName: string
-                        },
-                        channels: [] {
-                            id: int,
+                            users: [] {
+                                id: int,
+                                fullName: string
+                            },
+                            channels: [] {
+                                id: int,
+                                type: string,
+                                interlocutorId: int,
+                                firstMessageId: int,
+                                lastMessage: {
+                                    id: int,
+                                    senderId: int,
+                                    text: string,
+                                    createdAt: i64,
+                                }
+                            }
+                        `);
+                        break;
+                    case FROM_ID_BY_NAME.SEARCH:
+                        [values, offset] = netStream.current.readStructureWithNames(`
+                            users: [] {
+                                id: int,
+                                username: string, 
+                                fullName: string
+                            }
+                        `);
+                        break;
+                    case FROM_ID_BY_NAME.CREATE_CHANNEL:
+                        [values, offset] = netStream.current.readStructureWithNames(`
+                            id: int,                            
                             type: string,
-                            interlocutorId: int,
                             firstMessageId: int,
+                            interlocutorId: int,
                             lastMessage: {
                                 id: int,
                                 senderId: int,
                                 text: string,
                                 createdAt: i64,
                             }
-                        }
-                    `);
-                        break;
-                    case FROM_ID_BY_NAME.SEARCH:
-                        [values, offset] = netStream.current.readStructureWithNames(`
-                        users: [] {
-                            id: int,
-                            username: string, 
-                            fullName: string
-                        }
-                    `);
-                        break;
-                    case FROM_ID_BY_NAME.CREATE_CHANNEL:
-                        [values, offset] = netStream.current.readStructureWithNames(`
-                        id: int,                            
-                        type: string,
-                        firstMessageId: int,
-                        interlocutorId: int,
-                        lastMessage: {
-                            id: int,
-                            senderId: int,
-                            text: string,
-                            createdAt: i64,
-                        }
-                    `);
+                        `);
                         break;
                     case FROM_ID_BY_NAME.MESSAGE:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        id: int,
-                        senderId: int,
-                        channelId: int,
-                        text: string,
-                        createdAt: i64,
-                    `);
+                            id: int,
+                            senderId: int,
+                            channelId: int,
+                            text: string,
+                            createdAt: i64,
+                        `);
                         break;
                     case FROM_ID_BY_NAME.GET_MESSAGES:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        channelId: int,
-                        messages: [] {
-                            id: int,
-                            senderId: int,
-                            text: string,
-                            createdAt: i64,
-                        }
-                    `);
+                            channelId: int,
+                            messages: [] {
+                                id: int,
+                                senderId: int,
+                                text: string,
+                                createdAt: i64,
+                            }
+                        `);
                         break;
                     case FROM_ID_BY_NAME.USER_STATUS:
                         [values, offset] = netStream.current.readStructureWithNames(`
-                        userId: int,
-                        isOnline: int,
-                    `)
+                            userId: int,
+                            isOnline: int,
+                        `)
+                        break;
+
+                    case FROM_ID_BY_NAME.USER:
+                        [values, offset] = netStream.current.readStructureWithNames(`
+                            id: int,
+                            fullName: string
+                        `)
                         break;
                     default:
                         break;

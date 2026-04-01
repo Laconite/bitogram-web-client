@@ -207,7 +207,7 @@ const Main = ({
             }   
         }
         const handleUserStatusPacket = (packet: NetPacket) => {
-            console.log("Packet: User is online");
+            console.log("Packet: User status");
 
             const userId = packet.values.userId;
             const isOnline = packet.values.isOnline;
@@ -224,11 +224,34 @@ const Main = ({
             });
         }
 
+        const handleUserPacket = (packet: NetPacket) => {
+            console.log("Packet: User");
+
+            const user: UserModel = {
+                id: packet.values.id,
+                fullName: packet.values.fullName
+            }
+
+            setUsers(prev => {
+                const index = prev.findIndex(u => u.id === user.id);
+
+                if (index !== -1) {
+                    const updatedUsers = [...prev];
+                    updatedUsers[index] = { ...updatedUsers[index], ...user };
+                    return updatedUsers;
+                }
+
+                return [...prev, user];
+            });
+        }
+
         subscribePacket(FROM_ID_BY_NAME.GET_INIT_DATA, handleGetInitDataPacket);
         subscribePacket(FROM_ID_BY_NAME.CREATE_CHANNEL, handleCreateChannelPacket);
         subscribePacket(FROM_ID_BY_NAME.MESSAGE, handleMessagePacket);
         subscribePacket(FROM_ID_BY_NAME.GET_MESSAGES, handleGetMessagesPacket);
         subscribePacket(FROM_ID_BY_NAME.USER_STATUS, handleUserStatusPacket);
+
+        subscribePacket(FROM_ID_BY_NAME.USER, handleUserPacket);
 
         return () => {
             unsubscribePacket(FROM_ID_BY_NAME.GET_INIT_DATA, handleGetInitDataPacket);
@@ -236,6 +259,8 @@ const Main = ({
             unsubscribePacket(FROM_ID_BY_NAME.MESSAGE, handleMessagePacket);
             unsubscribePacket(FROM_ID_BY_NAME.GET_MESSAGES, handleGetMessagesPacket);
             unsubscribePacket(FROM_ID_BY_NAME.USER_STATUS, handleUserStatusPacket);
+
+            unsubscribePacket(FROM_ID_BY_NAME.USER, handleUserPacket);
         };
     }, [subscribePacket, unsubscribePacket]);
 
