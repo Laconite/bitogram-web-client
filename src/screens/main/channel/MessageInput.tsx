@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { isMobile } from "@hooks/useIsMobile";
-import { usePacketManager, TO_ID_BY_NAME } from "@contexts/PacketManagerContext";
+import { usePacketManager, ID_FOR_SEND } from "@contexts/PacketManagerContext";
 import { NetStream } from "@utils/Net";
 import { type ChannelModel } from "../../Main";
 import Textarea from "@components/surface/Textarea"
@@ -19,7 +19,7 @@ const MessageInput = ({
 
     const sendCreateChannelPacket = async (type: string, interlocutorId: number, messageText: string) => {
         const netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.CREATE_CHANNEL);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__CREATE__CHANNEL);
         netStream.writeStructure({
             type: "string",
             interlocutorId: "int",
@@ -33,7 +33,7 @@ const MessageInput = ({
     }
     const sendMessagePacket = async (channelId: number, messageText: string) => {
         const netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.MESSAGE);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__CREATE__MESSAGE);
         netStream.writeStructure({
             channelId: "int",
             messageText: "string",

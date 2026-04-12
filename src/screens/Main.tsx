@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type RefObject, type Dispatch, type SetStateAction } from "react";
 import useRefState from "@hooks/useRefState"
 import { useWindowWidth } from "@hooks/useWindowWidth";
-import { usePacketManager, TO_ID_BY_NAME, FROM_ID_BY_NAME } from "@contexts/PacketManagerContext";
+import { usePacketManager, ID_FOR_SEND, ID_FOR_RECEIVE } from "@contexts/PacketManagerContext";
 import { NetStream, NetPacket } from "@utils/Net";
 import Search from "./main/Search"
 import ChannelPreview from "./main/ChannelPreview"
@@ -146,7 +146,27 @@ const Main = ({
             updateChannels();
             updateUsers();
         }
-        const handleCreateChannelPacket = (packet: NetPacket) => {
+        const handleUserPacket = (packet: NetPacket) => {
+            console.log("Packet: User");
+
+            const user: UserModel = {
+                id: packet.values.id,
+                fullName: packet.values.fullName
+            }
+
+            setUsers(prev => {
+                const index = prev.findIndex(u => u.id === user.id);
+
+                if (index !== -1) {
+                    const updatedUsers = [...prev];
+                    updatedUsers[index] = { ...updatedUsers[index], ...user };
+                    return updatedUsers;
+                }
+
+                return [...prev, user];
+            });
+        }
+        const handleChannelPacket = (packet: NetPacket) => {
             console.log("Packet: Create channel");
 
             const channel = packet.values;
@@ -224,49 +244,26 @@ const Main = ({
             });
         }
 
-        const handleUserPacket = (packet: NetPacket) => {
-            console.log("Packet: User");
-
-            const user: UserModel = {
-                id: packet.values.id,
-                fullName: packet.values.fullName
-            }
-
-            setUsers(prev => {
-                const index = prev.findIndex(u => u.id === user.id);
-
-                if (index !== -1) {
-                    const updatedUsers = [...prev];
-                    updatedUsers[index] = { ...updatedUsers[index], ...user };
-                    return updatedUsers;
-                }
-
-                return [...prev, user];
-            });
-        }
-
-        subscribePacket(FROM_ID_BY_NAME.GET_INIT_DATA, handleGetInitDataPacket);
-        subscribePacket(FROM_ID_BY_NAME.CREATE_CHANNEL, handleCreateChannelPacket);
-        subscribePacket(FROM_ID_BY_NAME.MESSAGE, handleMessagePacket);
-        subscribePacket(FROM_ID_BY_NAME.GET_MESSAGES, handleGetMessagesPacket);
-        subscribePacket(FROM_ID_BY_NAME.USER_STATUS, handleUserStatusPacket);
-
-        subscribePacket(FROM_ID_BY_NAME.USER, handleUserPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetInitDataPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGES, handleGetMessagesPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
 
         return () => {
-            unsubscribePacket(FROM_ID_BY_NAME.GET_INIT_DATA, handleGetInitDataPacket);
-            unsubscribePacket(FROM_ID_BY_NAME.CREATE_CHANNEL, handleCreateChannelPacket);
-            unsubscribePacket(FROM_ID_BY_NAME.MESSAGE, handleMessagePacket);
-            unsubscribePacket(FROM_ID_BY_NAME.GET_MESSAGES, handleGetMessagesPacket);
-            unsubscribePacket(FROM_ID_BY_NAME.USER_STATUS, handleUserStatusPacket);
-
-            unsubscribePacket(FROM_ID_BY_NAME.USER, handleUserPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetInitDataPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGES, handleGetMessagesPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
         };
     }, [subscribePacket, unsubscribePacket]);
 
     const sendGetMessagesPacket = async (channelId: number, startMessageId: number, messagesCount: number) => {
         const netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.GET_MESSAGES);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__MESSAGES);
         netStream.writeStructure({
             channelId: "int",
             startMessageId: "int",
@@ -280,7 +277,7 @@ const Main = ({
     }
     const sendSubscribeToReceiveUserStatusPacket = async (userId: number) => {
         const netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.SUBSCRIBE_TO_RECEIVE_USER_STATUS);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__USER_STATUS);
         netStream.writeStructure({
             userId: "int",
         }, [

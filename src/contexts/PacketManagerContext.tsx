@@ -2,36 +2,112 @@ import { createContext, useContext, useEffect, useRef } from "react";
 import { useSocket } from "@contexts/SocketContext";
 import { NetStream, NetPacket } from "@utils/Net";
 
-export const TO_ID_BY_NAME = {
-    RESTORE_SESSION: 0x00,
-    CHECK_USERNAME: 0x01,
-    GET_PASSWORD_SALT: 0x02,
-    AUTHORIZATION: 0x03,
-    REQUEST_CONFIRMATION_CODE: 0x04,
-    REGISTRATION: 0x05,
-    GET_INIT_DATA: 0x06,
-    SEARCH: 0x07,
-    CREATE_CHANNEL: 0x08,
-    MESSAGE: 0x09,
-    GET_MESSAGES: 0x0a,
-    SUBSCRIBE_TO_RECEIVE_USER_STATUS: 0x0b,
-};
-export const FROM_ID_BY_NAME = {
-    SESSION: 0x00,
-    CHECK_USERNAME: 0x01,
-    GET_PASSWORD_SALT: 0x02,
-    AUTHORIZATION: 0x03,
-    REQUEST_CONFIRMATION_CODE: 0x04,
-    REGISTRATION: 0x05,
-    GET_INIT_DATA: 0x06,
-    SEARCH: 0x07,
-    CREATE_CHANNEL: 0x08,
-    MESSAGE: 0x09,
-    GET_MESSAGES: 0x0a,
-    USER_STATUS: 0x0b,
 
-    USER: 0x0c,
-};
+function isValidType(type: string): boolean {
+    return [
+        "Request",
+        "Response",
+    ].includes(type);
+}
+
+function isValidAction(action: string): boolean {
+    return [
+        "None",
+        "Get",
+        "Create",
+        "Replace",
+        "Edit",
+        "Delete",
+    ].includes(action);
+}
+
+
+function getIdForSend(type: string, action: string, entity: string): number | null {
+    if (!isValidType(type) || !isValidAction(action)) {
+        return null;
+    }
+
+    const packet = [type, action, entity];
+
+    const packets = [
+        ["Request", "Get", "Short session"],
+        ["Request", "Get", "Long session"],
+        ["Request", "Get", "Username status"],
+        ["Request", "Get", "Salt for password"],
+        ["Request", "None", "Confirmation code"],
+        ["Request", "Create", "Authorize"],
+        ["Request", "Create", "Register"],
+        ["Request", "Get", "Starting data"],
+        ["Request", "Get", "Search"],
+        ["Request", "Create", "Channel"],
+        ["Request", "Create", "Message"],
+        ["Request", "Get", "Messages"],
+        ["Request", "Get", "User status"],
+    ];
+
+    return packets.findIndex(p =>
+        p[0] === packet[0] && p[1] === packet[1] && p[2] === packet[2]
+    );
+}
+
+export const ID_FOR_SEND = {
+    REQUEST__GET__SHORT_SESSION: getIdForSend("Request", "Get", "Short session")!,
+    REQUEST__GET__LONG_SESSION: getIdForSend("Request", "Get", "Long session")!,
+    REQUEST__GET__USERNAME_STATUS: getIdForSend("Request", "Get", "Username status")!,
+    REQUEST__GET__SALT_FOR_PASSWORD: getIdForSend("Request", "Get", "Salt for password")!,
+    REQUEST__NONE__CONFIRMATION_CODE: getIdForSend("Request", "None", "Confirmation code")!,
+    REQUEST__CREATE__AUTHORIZE: getIdForSend("Request", "Create", "Authorize")!,
+    REQUEST__CREATE__REGISTER: getIdForSend("Request", "Create", "Register")!,
+    REQUEST__GET__STARTING_DATA: getIdForSend("Request", "Get", "Starting data")!,
+    REQUEST__GET__SEARCH: getIdForSend("Request", "Get", "Search")!,
+    REQUEST__CREATE__CHANNEL: getIdForSend("Request", "Create", "Channel")!,
+    REQUEST__CREATE__MESSAGE: getIdForSend("Request", "Create", "Message")!,
+    REQUEST__GET__MESSAGES: getIdForSend("Request", "Get", "Messages")!,
+    REQUEST__GET__USER_STATUS: getIdForSend("Request", "Get", "User status")!,
+}
+
+function getIdForReceive(type: string, action: string, entity: string): number | null {
+    if (!isValidType(type) || !isValidAction(action)) {
+        return null;
+    }
+
+    const packet = [type, action, entity];
+
+    const packets = [
+        ["Response", "None", "Short session"],
+        ["Response", "None", "Username status"],
+        ["Response", "None", "Password salt"],
+        ["Response", "None", "Confirmation code"],
+        ["Response", "None", "Entry"],
+        ["Response", "None", "Starting data"],
+        ["Response", "None", "Search"],
+        ["Response", "None", "User"],
+        ["Response", "None", "Channel"],
+        ["Response", "None", "Message"],
+        ["Response", "None", "Messages"],
+        ["Response", "None", "User status"],
+    ];
+
+    return packets.findIndex(p =>
+        p[0] === packet[0] && p[1] === packet[1] && p[2] === packet[2]
+    );
+}
+
+export const ID_FOR_RECEIVE = {
+    RESPONSE__NONE__SHORT_SESSION: getIdForReceive("Response", "None", "Short session")!,
+    RESPONSE__NONE__USERNAME_STATUS: getIdForReceive("Response", "None", "Username status")!,
+    RESPONSE__NONE__PASSWORD_SALT: getIdForReceive("Response", "None", "Password salt")!,
+    RESPONSE__NONE__CONFIRMATION_CODE: getIdForReceive("Response", "None", "Confirmation code")!,
+    RESPONSE__NONE__ENTRY: getIdForReceive("Response", "None", "Entry")!,
+    RESPONSE__NONE__STARTING_DATA: getIdForReceive("Response", "None", "Starting data")!,
+    RESPONSE__NONE__SEARCH: getIdForReceive("Response", "None", "Search")!,
+    RESPONSE__NONE__USER: getIdForReceive("Response", "None", "User")!,
+    RESPONSE__NONE__CHANNEL: getIdForReceive("Response", "None", "Channel")!,
+    RESPONSE__NONE__MESSAGE: getIdForReceive("Response", "None", "Message")!,
+    RESPONSE__NONE__MESSAGES: getIdForReceive("Response", "None", "Messages")!,
+    RESPONSE__NONE__USER_STATUS: getIdForReceive("Response", "None", "User status")!,
+}
+
 
 type PacketManagerContextType = {
     sendPacket: (payload: Uint8Array) => void;
@@ -80,35 +156,30 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                 let values: Record<string, any> | null = null;
 
                 switch (netPacket.current.id) {
-                    case FROM_ID_BY_NAME.SESSION:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__SHORT_SESSION:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             key: bytes
                         `);
                         break;
-                    case FROM_ID_BY_NAME.CHECK_USERNAME:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__USERNAME_STATUS:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             usernameStatus: int
                         `);
                         break;
-                    case FROM_ID_BY_NAME.GET_PASSWORD_SALT:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__PASSWORD_SALT:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             passwordSalt: bytes
                         `);
                         break;
-                    case FROM_ID_BY_NAME.AUTHORIZATION:
-                        [values, offset] = netStream.current.readStructureWithNames(`
-                            userId: int
-                        `);
-                        break;
-                    case FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__CONFIRMATION_CODE:
                         [values, offset] = [[], null];
                         break;
-                    case FROM_ID_BY_NAME.REGISTRATION:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__ENTRY:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             userId: int
                         `);
                         break;
-                    case FROM_ID_BY_NAME.GET_INIT_DATA:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             users: [] {
                                 id: int,
@@ -128,7 +199,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             }
                         `);
                         break;
-                    case FROM_ID_BY_NAME.SEARCH:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__SEARCH:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             users: [] {
                                 id: int,
@@ -137,7 +208,13 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             }
                         `);
                         break;
-                    case FROM_ID_BY_NAME.CREATE_CHANNEL:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__USER:
+                        [values, offset] = netStream.current.readStructureWithNames(`
+                            id: int,
+                            fullName: string
+                        `)
+                        break;
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             id: int,                            
                             type: string,
@@ -151,7 +228,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             }
                         `);
                         break;
-                    case FROM_ID_BY_NAME.MESSAGE:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             id: int,
                             senderId: int,
@@ -160,7 +237,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             createdAt: i64,
                         `);
                         break;
-                    case FROM_ID_BY_NAME.GET_MESSAGES:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGES:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             channelId: int,
                             messages: [] {
@@ -171,17 +248,10 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                             }
                         `);
                         break;
-                    case FROM_ID_BY_NAME.USER_STATUS:
+                    case ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS:
                         [values, offset] = netStream.current.readStructureWithNames(`
                             userId: int,
                             isOnline: int,
-                        `)
-                        break;
-
-                    case FROM_ID_BY_NAME.USER:
-                        [values, offset] = netStream.current.readStructureWithNames(`
-                            id: int,
-                            fullName: string
                         `)
                         break;
                     default:
@@ -245,7 +315,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
 
     const sendCheckUsernamePacket = async (username: string) => {
         let netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.CHECK_USERNAME);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__USERNAME_STATUS);
         netStream.writeStructure({
             username: "string",
         }, [
@@ -255,14 +325,14 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     }
     const sendGetPasswordSaltPacket = async () => {
         let netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.GET_PASSWORD_SALT);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__SALT_FOR_PASSWORD);
         sendPacket(netStream.buffer);
     }
     const sendAuthorizationPacket = async (password: string, passwordSalt: Uint8Array) => {
         const passwordHash = await calculatePasswordHash(password, passwordSalt);
 
         let netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.AUTHORIZATION);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__CREATE__AUTHORIZE);
         netStream.writeStructure({
             passwordHash: "bytes",
         }, [
@@ -272,7 +342,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     }
     const sendRequestConfirmationCodePacket = async (email: string) => {
         let netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.REQUEST_CONFIRMATION_CODE);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__NONE__CONFIRMATION_CODE);
         netStream.writeStructure({
             email: "string",
         }, [
@@ -284,7 +354,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         let passwordHash = await calculatePasswordHash(password, passwordSalt);
 
         let netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.REGISTRATION);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__CREATE__REGISTER);
         netStream.writeStructure({
             passwordSalt: "bytes",
             passwordHash: "bytes",
@@ -300,7 +370,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     }
     const sendGetInitDataPacket = async () => {
         let netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.GET_INIT_DATA);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__STARTING_DATA);
         sendPacket(netStream.buffer);
     }
 

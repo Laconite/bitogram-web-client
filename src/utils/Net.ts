@@ -132,7 +132,7 @@ const ASTBuilder = {
 };
 
 export class NetStream {
-    buffer: Uint8Array;
+    buffer: Uint8Array<ArrayBuffer>;
 
     constructor() {
         this.buffer = new Uint8Array(0);

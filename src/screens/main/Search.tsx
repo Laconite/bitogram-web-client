@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, type RefObject, type Dispatch, type SetStateAction } from "react";
-import { usePacketManager, TO_ID_BY_NAME } from "@contexts/PacketManagerContext";
-import { FROM_ID_BY_NAME } from "@contexts/PacketManagerContext";
+import { usePacketManager, ID_FOR_SEND, ID_FOR_RECEIVE } from "@contexts/PacketManagerContext";
 import { NetStream, NetPacket } from "@utils/Net";
 import { type UserModel, type ChannelModel } from "../Main";
 import Input from "@components/surface/Input"
@@ -44,7 +43,7 @@ const Search = ({
 
     const sendSearchPacket = async (searchText: string) => {
         const netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.SEARCH);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__SEARCH);
         netStream.writeStructure({
             searchText: "string",
         }, [
@@ -116,10 +115,10 @@ const Search = ({
             setSearching(false);
         }
 
-        subscribePacket(FROM_ID_BY_NAME.SEARCH, handleSearch);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__SEARCH, handleSearch);
 
         return () => {
-            unsubscribePacket(FROM_ID_BY_NAME.SEARCH, handleSearch);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__SEARCH, handleSearch);
         };
     }, [subscribePacket, unsubscribePacket]);
 

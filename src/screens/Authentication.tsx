@@ -1,5 +1,5 @@
 import { useState, useEffect, type RefObject } from "react";
-import { usePacketManager, TO_ID_BY_NAME, FROM_ID_BY_NAME } from "@contexts/PacketManagerContext";
+import { usePacketManager, ID_FOR_RECEIVE } from "@contexts/PacketManagerContext";
 import { NetStream, NetPacket } from "@utils/Net";
 import Input from "@components/background/Input"
 import classes from "./Authentication.module.css";
@@ -11,7 +11,7 @@ interface AuthenticationProps {
     usernameRef: RefObject<string>;
     fullName: string;
     setFullName: (fullName: string) => void;
-    passwordSaltRef: RefObject<Uint8Array | null>;
+    passwordSaltRef: RefObject<Uint8Array<ArrayBuffer> | null>;
     setId: (id: number | null) => void;
 }
 
@@ -58,13 +58,13 @@ const Authentication = ({
     } = usePacketManager();
 
     useEffect(() => {
-        const handleSessionPacket = (packet: NetPacket) => {
-            console.log("Packet: Session");
+        const handleShortSessionPacket = (packet: NetPacket) => {
+            console.log("Packet: Short session");
             console.log("\t", packet.values.key);
             sessionKeyRef.current = packet.values.key;
         }
-        const handleCheckUsernamePacket = (packet: NetPacket) => {
-            console.log("Packet: Check username");
+        const handleUsernameStatusPacket = (packet: NetPacket) => {
+            console.log("Packet: Username status");
 
             const UsernameStatus = {
                 FREE: 0,
@@ -86,21 +86,13 @@ const Authentication = ({
             passwordSaltRef.current = packet.values.passwordSalt;
             setPageId(PageId.ENTERING_PASSWORD);
         }
-        const handleAuthorizationPacket = (packet: NetPacket) => {
-            console.log("Packet: Authorization");
-
-            setId(packet.values.userId);
-            console.log("\tUser ID: ", packet.values.userId);
-
-            sendGetInitDataPacket();
-        }
         const handleRequestConfirmationCodePacket = (packet: NetPacket) => {
             console.log("Packet: Request confirmation code");
 
             setPageId(PageId.ENTERING_CONFIRMATION_CODE);
         }
-        const handleRegistrationPacket = (packet: NetPacket) => {
-            console.log("Packet: Registration");
+        const handleEntryPacket = (packet: NetPacket) => {
+            console.log("Packet: Entry");
 
             setId(packet.values.userId);
             console.log("\tUser ID: ", packet.values.userId);
@@ -108,20 +100,18 @@ const Authentication = ({
             sendGetInitDataPacket();
         }
 
-        subscribePacket(FROM_ID_BY_NAME.SESSION, handleSessionPacket);
-        subscribePacket(FROM_ID_BY_NAME.CHECK_USERNAME, handleCheckUsernamePacket);
-        subscribePacket(FROM_ID_BY_NAME.GET_PASSWORD_SALT, handleGetPasswordSaltPacket);
-        subscribePacket(FROM_ID_BY_NAME.AUTHORIZATION, handleAuthorizationPacket);
-        subscribePacket(FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE, handleRequestConfirmationCodePacket);
-        subscribePacket(FROM_ID_BY_NAME.REGISTRATION, handleRegistrationPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__SHORT_SESSION, handleShortSessionPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USERNAME_STATUS, handleUsernameStatusPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__PASSWORD_SALT, handleGetPasswordSaltPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CONFIRMATION_CODE, handleRequestConfirmationCodePacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__ENTRY, handleEntryPacket);
 
         return () => {
-            unsubscribePacket(FROM_ID_BY_NAME.SESSION, handleSessionPacket);
-            unsubscribePacket(FROM_ID_BY_NAME.CHECK_USERNAME, handleCheckUsernamePacket);
-            unsubscribePacket(FROM_ID_BY_NAME.GET_PASSWORD_SALT, handleGetPasswordSaltPacket);
-            unsubscribePacket(FROM_ID_BY_NAME.AUTHORIZATION, handleAuthorizationPacket);
-            unsubscribePacket(FROM_ID_BY_NAME.REQUEST_CONFIRMATION_CODE, handleRequestConfirmationCodePacket);
-            unsubscribePacket(FROM_ID_BY_NAME.REGISTRATION, handleRegistrationPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__SHORT_SESSION, handleShortSessionPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USERNAME_STATUS, handleUsernameStatusPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__PASSWORD_SALT, handleGetPasswordSaltPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CONFIRMATION_CODE, handleRequestConfirmationCodePacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__ENTRY, handleEntryPacket);
         };
     }, [subscribePacket, unsubscribePacket]);
 

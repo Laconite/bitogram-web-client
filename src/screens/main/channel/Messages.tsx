@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { usePacketManager, TO_ID_BY_NAME } from "@contexts/PacketManagerContext";
+import { usePacketManager, ID_FOR_SEND } from "@contexts/PacketManagerContext";
 import { NetStream } from "@utils/Net";
 import { type ChannelModel, type MessageModel } from "../../Main";
 import classes from "./Messages.module.css";
@@ -22,7 +22,7 @@ const Messages = ({
 
     const sendGetMessagesPacket = async (channelId: number, startMessageId: number, messagesCount: number) => {
         const netStream = new NetStream();
-        netStream.writeNumber(TO_ID_BY_NAME.GET_MESSAGES);
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__MESSAGES);
         netStream.writeStructure({
             channelId: "int",
             startMessageId: "int",
