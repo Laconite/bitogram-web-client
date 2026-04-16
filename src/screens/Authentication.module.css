@@ -29,3 +29,8 @@
 .button:active {
     background-color: var(--background-button-color-active);
 }
+
+.text {
+    color: var(--text-color);
+    font-size: var(--font-size);
+}

@@ -50,14 +50,14 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     ws.onopen = () => {
       socketRef.current = ws;
       setSocket(ws);
-      listenersRef.current.open.forEach((cb) => cb());
       console.log('WS connected');
+      listenersRef.current.open.forEach((cb) => cb());
     };
     ws.onclose = () => {
       socketRef.current = null;
       setSocket(null);
-      listenersRef.current.close.forEach((cb) => cb());
       console.log('WS closed');
+      listenersRef.current.close.forEach((cb) => cb());
     };
     ws.onmessage = (event) => {
       listenersRef.current.message.forEach((cb) => cb(event));

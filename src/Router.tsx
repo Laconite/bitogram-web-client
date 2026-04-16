@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import useRefState from "@hooks/useRefState"
 import { useSocket } from "@contexts/SocketContext";
 import { usePacketManager, ID_FOR_SEND } from "@contexts/PacketManagerContext";
@@ -6,19 +6,30 @@ import { NetStream } from "@utils/Net";
 import Authentication from "./screens/Authentication"
 import Main from "./screens/Main"
 
+const fromBase64 = (base64: string): Uint8Array => {
+    return new Uint8Array(
+        atob(base64).split("").map(c => c.charCodeAt(0))
+    );
+};
+
 const Router = () => {
-    const sessionKeyRef = useRef<Uint8Array | null>(null);
+    const shortSessionKeyRef = useRef<Uint8Array | null>(null);
+    const [longSessionKey, setLongSessionKey] = useState<Uint8Array | null>(
+        localStorage.getItem("longSessionKey")
+            ? fromBase64(localStorage.getItem("longSessionKey")!)
+            : null
+    );
+    const [id, setId] = useState<number | null>(null);
     const [username, setUsername, usernameRef] = useRefState("");
     const [fullName, setFullName] = useState("");
     const passwordSaltRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
-    const [id, setId] = useState<number | null>(null);
 
     const { subscribe, unsubscribe } = useSocket();
     const { sendPacket } = usePacketManager();
 
     useEffect(() => {
         const handleSocketOpen = () => {
-            if (!sessionKeyRef.current) 
+            if (!shortSessionKeyRef.current)
                 return;
 
             const netStream = new NetStream();
@@ -27,7 +38,7 @@ const Router = () => {
                 key: "bytes",
             }, [
                 ID_FOR_SEND.REQUEST__GET__SHORT_SESSION,
-                sessionKeyRef.current,
+                shortSessionKeyRef.current,
             ]);
             sendPacket(netStream.buffer);
         }
@@ -42,7 +53,9 @@ const Router = () => {
     if (id === null) {
         return (
             <Authentication
-                sessionKeyRef={sessionKeyRef}
+                shortSessionKeyRef={shortSessionKeyRef}
+                longSessionKey={longSessionKey}
+                setLongSessionKey={setLongSessionKey}
                 username={username}
                 setUsername={setUsername}
                 usernameRef={usernameRef}

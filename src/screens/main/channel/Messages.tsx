@@ -83,7 +83,6 @@ const Messages = ({
                     return;
 
                 if (channel.firstMessageId != messages[0].id) {
-                    console.log("GET MESSAGES!!!");
                     sendGetMessagesPacket(channel.id, messages[0].id, 20);
                     channel.messagesLoading = true;
                 }

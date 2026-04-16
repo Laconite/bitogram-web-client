@@ -37,6 +37,7 @@ function getIdForSend(type: string, action: string, entity: string): number | nu
         ["Request", "None", "Confirmation code"],
         ["Request", "Create", "Authorize"],
         ["Request", "Create", "Register"],
+        ["Request", "Create", "Long session"],
         ["Request", "Get", "Starting data"],
         ["Request", "Get", "Search"],
         ["Request", "Create", "Channel"],
@@ -58,6 +59,7 @@ export const ID_FOR_SEND = {
     REQUEST__NONE__CONFIRMATION_CODE: getIdForSend("Request", "None", "Confirmation code")!,
     REQUEST__CREATE__AUTHORIZE: getIdForSend("Request", "Create", "Authorize")!,
     REQUEST__CREATE__REGISTER: getIdForSend("Request", "Create", "Register")!,
+    REQUEST__CREATE__LONG_SESSION: getIdForSend("Request", "Create", "Long session")!,
     REQUEST__GET__STARTING_DATA: getIdForSend("Request", "Get", "Starting data")!,
     REQUEST__GET__SEARCH: getIdForSend("Request", "Get", "Search")!,
     REQUEST__CREATE__CHANNEL: getIdForSend("Request", "Create", "Channel")!,
@@ -114,11 +116,13 @@ type PacketManagerContextType = {
     subscribePacket: (packetId: number, callback: (packet: NetPacket) => void) => void;
     unsubscribePacket: (packetId: number, callback: (packet: NetPacket) => void) => void;
 
+    sendRequestGetLongSessionPacket: (key: Uint8Array) => Promise<void>;
     sendCheckUsernamePacket: (username: string) => Promise<void>;
     sendGetPasswordSaltPacket: () => Promise<void>;
     sendAuthorizationPacket: (password: string, passwordSalt: Uint8Array) => Promise<void>;
     sendRequestConfirmationCodePacket: (email: string) => Promise<void>;
     sendRegistrationPacket: (password: string, passwordSalt: Uint8Array, fullName: string, confirmationCode: string) => Promise<void>;
+    sendRequestCreateLongSessionPacket: (key: Uint8Array) => Promise<void>;
     sendGetInitDataPacket: () => Promise<void>;
 };
 
@@ -292,7 +296,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
 
         const netStream = new NetStream();
         netStream.writeStructure({ payload: "bytes" }, [payload]);
-        socketRef.current.send(netStream.buffer);
+        socketRef.current.send(netStream.buffer as Uint8Array<ArrayBuffer>);
     }
     const subscribePacket = (packetId: number, callback: (packet: NetPacket) => void) => {
         if (!callbackRefs.current[packetId]) callbackRefs.current[packetId] = new Set();
@@ -313,6 +317,16 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         return new Uint8Array(await crypto.subtle.digest("SHA-256", combined));
     };
 
+    const sendRequestGetLongSessionPacket = async (key: Uint8Array) => {
+        let netStream = new NetStream();
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__LONG_SESSION);
+        netStream.writeStructure({
+            key: "bytes",
+        }, [
+            key,
+        ]);
+        sendPacket(netStream.buffer);
+    }
     const sendCheckUsernamePacket = async (username: string) => {
         let netStream = new NetStream();
         netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__USERNAME_STATUS);
@@ -328,6 +342,16 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__SALT_FOR_PASSWORD);
         sendPacket(netStream.buffer);
     }
+    const sendRequestConfirmationCodePacket = async (email: string) => {
+        let netStream = new NetStream();
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__NONE__CONFIRMATION_CODE);
+        netStream.writeStructure({
+            email: "string",
+        }, [
+            email,
+        ]);
+        sendPacket(netStream.buffer);
+    }
     const sendAuthorizationPacket = async (password: string, passwordSalt: Uint8Array) => {
         const passwordHash = await calculatePasswordHash(password, passwordSalt);
 
@@ -337,16 +361,6 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
             passwordHash: "bytes",
         }, [
             passwordHash,
-        ]);
-        sendPacket(netStream.buffer);
-    }
-    const sendRequestConfirmationCodePacket = async (email: string) => {
-        let netStream = new NetStream();
-        netStream.writeNumber(ID_FOR_SEND.REQUEST__NONE__CONFIRMATION_CODE);
-        netStream.writeStructure({
-            email: "string",
-        }, [
-            email,
         ]);
         sendPacket(netStream.buffer);
     }
@@ -368,6 +382,16 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         ]);
         sendPacket(netStream.buffer);
     }
+    const sendRequestCreateLongSessionPacket = async (key: Uint8Array) => {
+        let netStream = new NetStream();
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__CREATE__LONG_SESSION);
+        netStream.writeStructure({
+            key: "bytes",
+        }, [
+            key,
+        ]);
+        sendPacket(netStream.buffer);
+    }
     const sendGetInitDataPacket = async () => {
         let netStream = new NetStream();
         netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__STARTING_DATA);
@@ -379,16 +403,17 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
             sendPacket,
             subscribePacket,
             unsubscribePacket,
-
+            
+            sendRequestGetLongSessionPacket,
             sendCheckUsernamePacket,
             sendGetPasswordSaltPacket,
-            sendAuthorizationPacket,
             sendRequestConfirmationCodePacket,
+            sendAuthorizationPacket,
             sendRegistrationPacket,
+            sendRequestCreateLongSessionPacket,
             sendGetInitDataPacket,
         }}>
             {children}
         </PacketManagerContext.Provider>
     );
 };
-
