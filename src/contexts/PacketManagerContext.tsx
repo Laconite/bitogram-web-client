@@ -176,7 +176,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
                         `);
                         break;
                     case ID_FOR_RECEIVE.RESPONSE__NONE__CONFIRMATION_CODE:
-                        [values, offset] = [[], null];
+                        [values, offset] = [[], 0];
                         break;
                     case ID_FOR_RECEIVE.RESPONSE__NONE__ENTRY:
                         [values, offset] = netStream.current.readStructureWithNames(`
