@@ -30,6 +30,7 @@ function getIdForSend(type: string, action: string, entity: string): number | nu
     const packet = [type, action, entity];
 
     const packets = [
+        ["Request", "Get", "Ping"],
         ["Request", "Get", "Short session"],
         ["Request", "Get", "Long session"],
         ["Request", "Get", "Username status"],
@@ -52,6 +53,7 @@ function getIdForSend(type: string, action: string, entity: string): number | nu
 }
 
 export const ID_FOR_SEND = {
+    REQUEST__GET__PING: getIdForSend("Request", "Get", "Ping")!,
     REQUEST__GET__SHORT_SESSION: getIdForSend("Request", "Get", "Short session")!,
     REQUEST__GET__LONG_SESSION: getIdForSend("Request", "Get", "Long session")!,
     REQUEST__GET__USERNAME_STATUS: getIdForSend("Request", "Get", "Username status")!,
@@ -140,6 +142,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
     const netPacket = useRef<NetPacket>(null);
 
     const callbackRefs = useRef<Record<number, Set<(packet: NetPacket) => void>>>({});
+
 
     const handleMessage = (event: MessageEvent) => {
         netStream.current.feed(new Uint8Array(event.data));
@@ -290,6 +293,45 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         return () => unsubscribe("message", handleMessage);
     }, [subscribe, unsubscribe]);
 
+
+    const lastActivityAt = useRef(0);
+    const idleTimer = useRef<any>(null);
+
+    function markActivity() {
+        lastActivityAt.current = Date.now();
+    }
+
+    function schedule() {
+        if (idleTimer.current) {
+            clearTimeout(idleTimer.current);
+        }
+
+        const delay = Math.max(0, 60000 - (Date.now() - lastActivityAt.current));
+
+        idleTimer.current = setTimeout(() => {
+            if (Date.now() - lastActivityAt.current >= 60000) {
+                sendPing();
+            }
+            
+            schedule();
+        }, delay);
+    }
+
+    useEffect(() => {
+        subscribe("open", () => {
+            markActivity();
+            schedule();
+        });
+
+        subscribe("close", () => {
+            if (idleTimer.current) {
+                clearTimeout(idleTimer.current);
+                idleTimer.current = null;
+            }
+        });
+    }, [subscribe, unsubscribe]);
+
+
     const sendPacket = async (payload: Uint8Array) => {
         if (socketRef.current?.readyState != WebSocket.OPEN)
             return;
@@ -297,6 +339,8 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         const netStream = new NetStream();
         netStream.writeStructure({ payload: "bytes" }, [payload]);
         socketRef.current.send(netStream.buffer as Uint8Array<ArrayBuffer>);
+
+        markActivity();
     }
     const subscribePacket = (packetId: number, callback: (packet: NetPacket) => void) => {
         if (!callbackRefs.current[packetId]) callbackRefs.current[packetId] = new Set();
@@ -317,6 +361,11 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         return new Uint8Array(await crypto.subtle.digest("SHA-256", combined));
     };
 
+    const sendPing = async () => {
+        let netStream = new NetStream();
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__PING);
+        sendPacket(netStream.buffer);
+    }
     const sendRequestGetLongSessionPacket = async (key: Uint8Array) => {
         let netStream = new NetStream();
         netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__LONG_SESSION);
@@ -403,7 +452,7 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
             sendPacket,
             subscribePacket,
             unsubscribePacket,
-            
+
             sendRequestGetLongSessionPacket,
             sendCheckUsernamePacket,
             sendGetPasswordSaltPacket,
