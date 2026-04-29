@@ -36,7 +36,6 @@ input::-ms-reveal,
 input::-ms-clear {
   display: none;
 }
-input::-webkit-password-toggle-button,
-input::-webkit-textfield-decoration-container {
+input::-webkit-password-toggle-button {
   display: none;
 }
