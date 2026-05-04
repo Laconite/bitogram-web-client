@@ -78,7 +78,9 @@ const Messages = ({
         if (!container) return;
 
         const handleScrollTopCheck = () => {
-            if (container.scrollTop < 200 && !channel.messagesLoading) {
+            const threshold = Math.max(window.innerHeight * 1.2, 600);
+
+            if (container.scrollTop < threshold && !channel.messagesLoading) {
                 if (!channel.id || !messages?.length)
                     return;
 

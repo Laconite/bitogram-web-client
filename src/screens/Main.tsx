@@ -294,7 +294,7 @@ const Main = ({
                 sendGetMessagesPacket(
                     channel.id,
                     getMessages(channel.id).reduce((min, m) => m.id < min.id ? m : min).id,
-                    19
+                    49
                 );
 
                 channel.startMessagesLoaded = true;
