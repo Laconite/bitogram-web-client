@@ -45,6 +45,7 @@ function getIdForSend(type: string, action: string, entity: string): number | nu
         ["Request", "Create", "Message"],
         ["Request", "Get", "Messages"],
         ["Request", "Get", "User status"],
+        ["Request", "None", "Subscribe to notifications"],
     ];
 
     return packets.findIndex(p =>
@@ -68,6 +69,7 @@ export const ID_FOR_SEND = {
     REQUEST__CREATE__MESSAGE: getIdForSend("Request", "Create", "Message")!,
     REQUEST__GET__MESSAGES: getIdForSend("Request", "Get", "Messages")!,
     REQUEST__GET__USER_STATUS: getIdForSend("Request", "Get", "User status")!,
+    REQUEST__NONE__SUBSCRIBE_TO_NOTIFICATIONS: getIdForSend("Request", "None", "Subscribe to notifications")!,
 }
 
 function getIdForReceive(type: string, action: string, entity: string): number | null {
@@ -125,7 +127,8 @@ type PacketManagerContextType = {
     sendRequestConfirmationCodePacket: (email: string) => Promise<void>;
     sendRegistrationPacket: (password: string, passwordSalt: Uint8Array, fullName: string, confirmationCode: string) => Promise<void>;
     sendRequestCreateLongSessionPacket: (key: Uint8Array) => Promise<void>;
-    sendGetInitDataPacket: () => Promise<void>;
+    sendGetStartingDataPacket: () => Promise<void>;
+    sendNoneSubscribeToNotificationsPacket: (subscription: PushSubscription) => Promise<void>;
 };
 
 const PacketManagerContext = createContext<PacketManagerContextType | null>(null);
@@ -441,9 +444,34 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
         ]);
         sendPacket(netStream.buffer);
     }
-    const sendGetInitDataPacket = async () => {
+    const sendGetStartingDataPacket = async () => {
         let netStream = new NetStream();
         netStream.writeNumber(ID_FOR_SEND.REQUEST__GET__STARTING_DATA);
+        sendPacket(netStream.buffer);
+    }
+    const sendNoneSubscribeToNotificationsPacket = async (subscription: PushSubscription) => {
+        const endpoint = subscription.endpoint;
+        const p256dhRaw = subscription.getKey("p256dh");
+        const authRaw = subscription.getKey("auth");
+
+        if (!p256dhRaw || !authRaw) {
+            throw new Error("Invalid push subscription keys");
+        }
+
+        const p256dh = new Uint8Array(p256dhRaw);
+        const auth = new Uint8Array(authRaw);
+        
+        const netStream = new NetStream();
+        netStream.writeNumber(ID_FOR_SEND.REQUEST__NONE__SUBSCRIBE_TO_NOTIFICATIONS);
+        netStream.writeStructure({
+            endpoint: "string",
+            p256dh: "bytes",
+            auth: "bytes",
+        }, [
+            endpoint,
+            p256dh,
+            auth,
+        ]);
         sendPacket(netStream.buffer);
     }
 
@@ -460,7 +488,8 @@ export const PacketManagerProvider = ({ children }: { children: React.ReactNode 
             sendAuthorizationPacket,
             sendRegistrationPacket,
             sendRequestCreateLongSessionPacket,
-            sendGetInitDataPacket,
+            sendGetStartingDataPacket,
+            sendNoneSubscribeToNotificationsPacket,
         }}>
             {children}
         </PacketManagerContext.Provider>

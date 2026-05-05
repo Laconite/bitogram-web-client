@@ -103,10 +103,16 @@ const Main = ({
 
     const channelAfterMessagesLoading = useRef<ChannelModel | null>(null)
 
-    const { sendPacket, subscribePacket, unsubscribePacket } = usePacketManager();
+    const {
+        sendPacket,
+        subscribePacket,
+        unsubscribePacket,
+
+        sendNoneSubscribeToNotificationsPacket,
+    } = usePacketManager();
 
     useEffect(() => {
-        const handleGetInitDataPacket = (packet: NetPacket) => {
+        const handleGetStartingDataPacket = (packet: NetPacket) => {
             console.log("Packet: Get init data");
 
             const channels = packet.values.channels;
@@ -133,7 +139,7 @@ const Main = ({
 
             for (let userIndex = 0; userIndex < packet.values.users.length; userIndex++) {
                 const user = packet.values.users[userIndex];
-                
+
                 usersRef.current.push({
                     id: user.id,
                     username: user.username,
@@ -224,7 +230,7 @@ const Main = ({
             if (channelAfterMessagesLoading.current) {
                 setSelectedChannel(channelAfterMessagesLoading.current);
                 channelAfterMessagesLoading.current = null;
-            }   
+            }
         }
         const handleUserStatusPacket = (packet: NetPacket) => {
             console.log("Packet: User status");
@@ -244,7 +250,7 @@ const Main = ({
             });
         }
 
-        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetInitDataPacket);
+        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetStartingDataPacket);
         subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
         subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
         subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
@@ -252,7 +258,7 @@ const Main = ({
         subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
 
         return () => {
-            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetInitDataPacket);
+            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetStartingDataPacket);
             unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
             unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
             unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
@@ -260,6 +266,52 @@ const Main = ({
             unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
         };
     }, [subscribePacket, unsubscribePacket]);
+
+    useEffect(() => {
+        function urlBase64ToUint8Array(base64: string) {
+            const padding = "=".repeat((4 - base64.length % 4) % 4);
+            const base64Fixed = (base64 + padding)
+                .replace(/-/g, "+")
+                .replace(/_/g, "/");
+
+            const raw = window.atob(base64Fixed);
+            return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+        }
+
+        async function initPushNotifications() {
+            try {
+                if (!('serviceWorker' in navigator)) return;
+
+                await navigator.serviceWorker.register('/service-worker.js');
+
+                const permission = await Notification.requestPermission();
+                if (permission !== "granted") return;
+
+                const registration = await navigator.serviceWorker.ready;
+
+                const vapidPublicKey = "BCm3ZnsNa0infPEeMBbj6ea3DyhGbHNo8KsH7_1ngdozGL4C-i7qkGT2ULjwrAbfbjkJLh8dSTSfe2kcmJ08xTk";
+                const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+
+                let subscription = await registration.pushManager.getSubscription();
+
+                if (!subscription) {
+                    subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey
+                    });
+                }
+
+                if (subscription) {
+                    await sendNoneSubscribeToNotificationsPacket(subscription);
+                }
+            } catch (e) {
+                console.error("Push subscribe failed:", e);
+                return;
+            }
+        }
+
+        initPushNotifications();
+    }, []);
 
     const sendGetMessagesPacket = async (channelId: number, startMessageId: number, messagesCount: number) => {
         const netStream = new NetStream();
@@ -289,7 +341,7 @@ const Main = ({
     const selectChannel = (channel: ChannelModel) => {
         if (!selectedChannelRef.current || selectedChannelRef.current.id !== channel.id) {
             sendSubscribeToReceiveUserStatusPacket(channel.interlocutorId!);
-            
+
             if (channel.id && !channel.startMessagesLoaded) {
                 sendGetMessagesPacket(
                     channel.id,
