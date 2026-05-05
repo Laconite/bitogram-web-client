@@ -41,7 +41,7 @@ const Authentication = ({
         unsubscribePacket,
 
         sendRequestCreateLongSessionPacket,
-        sendGetInitDataPacket,
+        sendGetStartingDataPacket,
     } = usePacketManager();
 
     useEffect(() => {
@@ -53,7 +53,9 @@ const Authentication = ({
 
         const handleEntryPacket = (packet: NetPacket) => {
             console.log("Packet: Entry");
+            console.log("\tUser ID: ", packet.values.userId);
 
+            // Check and create long session
             if (!localStorage.getItem("longSessionKey")) {
                 let newLongSessionKey = new Uint8Array(16);
                 crypto.getRandomValues(newLongSessionKey as Uint8Array<ArrayBuffer>);
@@ -62,9 +64,10 @@ const Authentication = ({
                 sendRequestCreateLongSessionPacket(newLongSessionKey);
             }
 
-            console.log("\tUser ID: ", packet.values.userId);
-            sendGetInitDataPacket();
+            // Request for initial data
+            sendGetStartingDataPacket();
 
+            // Setting id
             setId(packet.values.userId);
         }
 
