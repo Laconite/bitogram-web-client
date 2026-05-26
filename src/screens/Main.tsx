@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, type RefObject, type Dispatch, type SetSta
 import useRefState from "@hooks/useRefState"
 import { useWindowWidth } from "@hooks/useWindowWidth";
 import { usePacketManager, ID_FOR_SEND, ID_FOR_RECEIVE } from "@contexts/PacketManagerContext";
-import { NetStream, NetPacket } from "@utils/Net";
+import { NetStream, NetPacket } from "@utils/packer";
 import Search from "./main/Search"
 import ChannelPreview from "./main/ChannelPreview"
 import Channel from "./main/Channel"

@@ -3,16 +3,16 @@ import { createRoot } from 'react-dom/client'
 import "./styles/color_variables.css";
 import "./styles/outher_variables.css";
 import './index.css'
-import { SocketProvider } from '@contexts/SocketContext.tsx';
-import { PacketManagerProvider } from '@contexts/PacketManagerContext.tsx';
+import { SocketProvider } from '@contexts/SocketProvider.tsx';
+import { ProtocolProvider } from "@contexts/ProtocolProvider.tsx";
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <SocketProvider>
-      <PacketManagerProvider>
+      <ProtocolProvider>
         <App />
-      </PacketManagerProvider>
+      </ProtocolProvider>
     </SocketProvider>
   </StrictMode>,
 )

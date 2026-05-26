@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type RefObject, type Dispatch, type SetStateAction } from "react";
 import { usePacketManager, ID_FOR_SEND, ID_FOR_RECEIVE } from "@contexts/PacketManagerContext";
-import { NetStream, NetPacket } from "@utils/Net";
+import { NetStream, NetPacket } from "@utils/packer";
 import { type UserModel, type ChannelModel } from "../Main";
 import Input from "@components/surface/Input"
 import classes from "./Search.module.css";

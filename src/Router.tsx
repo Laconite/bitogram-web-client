@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, use } from "react";
 import useRefState from "@hooks/useRefState"
-import { useSocket } from "@contexts/SocketContext";
+import { useSocket } from "@contexts/SocketProvider";
 import { usePacketManager, ID_FOR_SEND } from "@contexts/PacketManagerContext";
-import { NetStream } from "@utils/Net";
+import { NetStream } from "@utils/packer";
 import Authentication from "./screens/Authentication"
 import Main from "./screens/Main"
 

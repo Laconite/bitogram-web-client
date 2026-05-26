@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { isMobile } from "@hooks/useIsMobile";
 import { usePacketManager, ID_FOR_SEND } from "@contexts/PacketManagerContext";
-import { NetStream } from "@utils/Net";
+import { NetStream } from "@utils/packer";
 import { type ChannelModel } from "../../Main";
 import Textarea from "@components/surface/Textarea"
 import classes from "./MessageInput.module.css";

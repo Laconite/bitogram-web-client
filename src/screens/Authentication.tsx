@@ -1,7 +1,7 @@
 import { useState, useEffect, type RefObject, use } from "react";
-import { useSocket } from "@contexts/SocketContext";
+import { useSocket } from "@contexts/SocketProvider";
 import { usePacketManager, ID_FOR_RECEIVE } from "@contexts/PacketManagerContext";
-import { NetStream, NetPacket } from "@utils/Net";
+import { NetStream, NetPacket } from "@utils/packer";
 import Input from "@components/background/Input"
 import classes from "./Authentication.module.css";
 

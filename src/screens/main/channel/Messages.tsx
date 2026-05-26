@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { usePacketManager, ID_FOR_SEND } from "@contexts/PacketManagerContext";
-import { NetStream } from "@utils/Net";
+import { NetStream } from "@utils/packer";
 import { type ChannelModel, type MessageModel } from "../../Main";
 import classes from "./Messages.module.css";
 import InfoText from "./Messages/InfoText";
