@@ -5,45 +5,52 @@ export const Protocol = {
             schema: ``,
         },
 
-        iAmAlive: {
+        restoreShortSession: {
             id: 1,
+            schema: `
+            key: bytes[u8],
+            `,
+        },
+
+        iAmAlive: {
+            id: 2,
             schema: ``,
         },
 
         checkUsernameStatus: {
-            id: 2,
+            id: 3,
             schema: `
-                username: string[u8],
+            username: string[u8],
             `,
         },
 
         getEmailVerificationCode: {
-            id: 3,
+            id: 4,
             schema: `
-                email: string[u8],
+            email: string[u8],
             `,
         },
 
         checkEmailVerificationCode: {
-            id: 4,
+            id: 5,
             schema: `
-                code: string[u8],
+            code: string[u8],
             `,
         },
 
         register: {
-            id: 5,
+            id: 6,
             schema: `
-                password_salt: bytes[u8],
-                password_hash: bytes[u8],
-                full_name: string[u8],
+            passwordSalt: bytes[u8],
+            passwordHash: bytes[u8],
+            fullName: string[u8],
             `,
         },
 
         authorize: {
-            id: 6,
+            id: 7,
             schema: `
-                password_hash: bytes[u8],
+            passwordHash: bytes[u8],
             `,
         },
     },
@@ -52,21 +59,21 @@ export const Protocol = {
         shortSession: {
             id: 0,
             schema: `
-                key: bytes[u8],
+            key: bytes[u8],
             `,
         },
 
         usernameStatus: {
             id: 1,
             schema: `
-                status: u8,
+            status: u8,
             `,
         },
 
         passwordSalt: {
             id: 2,
             schema: `
-                password_salt: bytes[u8],
+            passwordSalt: bytes[u8],
             `,
         },
 
@@ -78,7 +85,7 @@ export const Protocol = {
         entry: {
             id: 4,
             schema: `
-                user_id: u64,
+            userId: u64,
             `,
         },
     },

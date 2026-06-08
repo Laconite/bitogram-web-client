@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type RefObject, type Dispatch, type SetStateAction } from "react";
 import useRefState from "@hooks/useRefState"
 import { useWindowWidth } from "@hooks/useWindowWidth";
-import { usePacketManager, ID_FOR_SEND, ID_FOR_RECEIVE } from "@contexts/PacketManagerContext";
+import { useProtocol } from "@contexts/ProtocolProvider";
 import { NetStream, NetPacket } from "@utils/packer";
 import Search from "./main/Search"
 import ChannelPreview from "./main/ChannelPreview"
@@ -103,13 +103,7 @@ const Main = ({
 
     const channelAfterMessagesLoading = useRef<ChannelModel | null>(null)
 
-    const {
-        sendPacket,
-        subscribePacket,
-        unsubscribePacket,
-
-        sendNoneSubscribeToNotificationsPacket,
-    } = usePacketManager();
+    const protocol = useProtocol();
 
     useEffect(() => {
         const handleGetStartingDataPacket = (packet: NetPacket) => {
@@ -250,22 +244,22 @@ const Main = ({
             });
         }
 
-        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetStartingDataPacket);
-        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
-        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
-        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
-        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGES, handleGetMessagesPacket);
-        subscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
+        protocol.subscribe(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetStartingDataPacket);
+        protocol.subscribe(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
+        protocol.subscribe(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
+        protocol.subscribe(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
+        protocol.subscribe(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGES, handleGetMessagesPacket);
+        protocol.subscribe(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
 
         return () => {
-            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetStartingDataPacket);
-            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
-            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
-            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
-            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGES, handleGetMessagesPacket);
-            unsubscribePacket(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
+            protocol.unsubscribe(ID_FOR_RECEIVE.RESPONSE__NONE__STARTING_DATA, handleGetStartingDataPacket);
+            protocol.unsubscribe(ID_FOR_RECEIVE.RESPONSE__NONE__USER, handleUserPacket);
+            protocol.unsubscribe(ID_FOR_RECEIVE.RESPONSE__NONE__CHANNEL, handleChannelPacket);
+            protocol.unsubscribe(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGE, handleMessagePacket);
+            protocol.unsubscribe(ID_FOR_RECEIVE.RESPONSE__NONE__MESSAGES, handleGetMessagesPacket);
+            protocol.unsubscribe(ID_FOR_RECEIVE.RESPONSE__NONE__USER_STATUS, handleUserStatusPacket);
         };
-    }, [subscribePacket, unsubscribePacket]);
+    }, [protocol]);
 
     useEffect(() => {
         function urlBase64ToUint8Array(base64: string) {

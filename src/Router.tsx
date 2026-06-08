@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, use } from "react";
 import useRefState from "@hooks/useRefState"
 import { useSocket } from "@contexts/SocketProvider";
-import { usePacketManager, ID_FOR_SEND } from "@contexts/PacketManagerContext";
-import { NetStream } from "@utils/packer";
+import { useProtocol } from "@contexts/ProtocolProvider";
 import Authentication from "./screens/Authentication"
-import Main from "./screens/Main"
+// import Main from "./screens/Main"
 
 const fromBase64 = (base64: string): Uint8Array => {
     return new Uint8Array(
@@ -24,48 +23,51 @@ const Router = () => {
     const [fullName, setFullName] = useState("");
     const passwordSaltRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
-    const { subscribe, unsubscribe } = useSocket();
-    const { sendPacket } = usePacketManager();
+    const socket = useSocket();
+    const protocol = useProtocol();
+
+    useEffect(() => {
+        const handleShortSession = (data: Record<string, any>) => {
+            shortSessionKeyRef.current = data.key;
+        }
+
+        protocol.subscribe("shortSession", handleShortSession);
+
+        return () => {
+            protocol.unsubscribe("shortSession", handleShortSession);
+        }
+    }, [protocol]);
 
     useEffect(() => {
         const handleSocketOpen = () => {
             if (!shortSessionKeyRef.current)
                 return;
 
-            const netStream = new NetStream();
-            netStream.writeStructure({
-                id: "int",
-                key: "bytes",
-            }, [
-                ID_FOR_SEND.REQUEST__GET__SHORT_SESSION,
-                shortSessionKeyRef.current,
-            ]);
-            sendPacket(netStream.buffer);
+            protocol.send("restoreShortSession", {
+                key: shortSessionKeyRef.current,
+            });
         }
 
-        subscribe("open", handleSocketOpen);
+        socket.subscribe("open", handleSocketOpen);
 
         return () => {
-            unsubscribe("open", handleSocketOpen);
+            socket.unsubscribe("open", handleSocketOpen);
         };
-    }, [subscribe, unsubscribe]);
+    }, [socket, protocol]);
 
     if (id === null) {
         return (
             <Authentication
-                shortSessionKeyRef={shortSessionKeyRef}
-                longSessionKey={longSessionKey}
-                setLongSessionKey={setLongSessionKey}
                 username={username}
                 setUsername={setUsername}
                 usernameRef={usernameRef}
                 fullName={fullName}
                 setFullName={setFullName}
                 passwordSaltRef={passwordSaltRef}
-                setId={setId}
             />
         )
     } else {
+        /*
         return (
             <Main
                 username={username}
@@ -77,6 +79,7 @@ const Router = () => {
                 setId={setId}
             />
         )
+        */
     }
 }
 
