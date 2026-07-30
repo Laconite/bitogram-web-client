@@ -1,0 +1,25 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.frame {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+}
+
+.text {
+    color: var(--text-color);
+}
+
+.button-page {
+    color: var(--text-link-color);
+}
+
+.button-page:hover {
+    color: var(--text-link-color-hover);
+}

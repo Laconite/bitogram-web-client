@@ -1,0 +1,56 @@
+.screen {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.form {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.languages {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+}
+
+.button-language {
+    color: var(--text-link-color);
+    opacity: 0.5;
+}
+
+.button-language:hover {
+    color: var(--text-link-color-hover);
+}
+
+.button-language-selected {
+    color: var(--text-link-color);
+}
+
+.button-language-selected:hover {
+    color: var(--text-link-color-hover);
+}
+
+.canvas {
+  width: 40px;
+  height: 100vh;
+  display: block;
+}
+
+.info {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background-color: var(--surface-color);
+}
