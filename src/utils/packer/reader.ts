@@ -3,7 +3,7 @@ import type {
     Schema,
     SchemaType,
     StructType
-} from "./types";
+} from './types';
 
 class BitReader {
     index = 0;
@@ -15,9 +15,7 @@ class BitReader {
 
     read(): boolean {
         const byte = this.bytes[this.index >> 3];
-
         const bit = (byte >> (7 - (this.index & 7))) & 1;
-
         this.index++;
 
         return bit === 1;
@@ -123,7 +121,7 @@ function readType(
 
             offsetRef.value += length;
 
-            return bytes.slice().buffer;
+            return bytes.slice();
         }
 
         case "struct":

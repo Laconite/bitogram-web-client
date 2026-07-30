@@ -49,6 +49,6 @@ export type PackerValue =
     | number
     | bigint
     | string
-    | ArrayBuffer
+    | Uint8Array
     | Record<string, any>
     | PackerValue[];
